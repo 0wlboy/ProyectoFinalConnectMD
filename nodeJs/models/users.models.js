@@ -123,7 +123,7 @@ const userSchema = new Schema({
   Apellido: { type: String, required: true },
   fotoPerfil: { type: String, required: true },
   localizacion: [localizacionSchema],
-  password: { type: String, unique: true, required: true },
+  password: { type: String, bcrypt: true , unique: true, required: true },
   rol: { type: String, enum: ['cliente', 'prof', 'admin'], required: true },
   contact_history: [contactHistorySchema],
   fotosOficinas: { type: String },
