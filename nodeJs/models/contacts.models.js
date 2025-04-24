@@ -2,49 +2,75 @@ import mongoose, { Schema } from 'mongoose';
 import moongoosePaginate from "mongoose-paginate-v2"; //importar modulo paginacion
 
 /**
- * @typedef ReportDetails
- * @property {string} cause - Causa del reporte.
- * @property {string} description - Descripción detallada del reporte.
+ * @typedef {object} Contact
+ * @property {mongoose.Schema.Types.ObjectId} _id - Unique ID of the contact (ObjectId).
+ * @property {mongoose.Schema.Types.ObjectId} senderId - ID of the user who initiated the contact (reference to Users).
+ * @property {mongoose.Schema.Types.ObjectId} receiverId - ID of the professional who received the contact (reference to Users, assuming 'prof' is a role in the User model).
+ * @property {string} affair - Type of contact ('cita', 'calificacion', 'rechazo', 'cancelacion', 'reporte').
+ * @property {string} cause - Reason for the report (only if affair is 'reporte': 'conducta inapropiada', 'conducta sospechosa', 'estafa', 'negligencia', 'otro').
+ * @property {string} description - Description of the report (only if affair is 'reporte').
+ * @property {boolean} isDeleted - Indicates if the contact has been logically deleted (default: false, indexed).
+ * @property {boolean} isSent - Indicates if the contact has been sent (default: false, indexed).
+ * @property {mongoose.Schema.Types.ObjectId} modifiedBy - ID of the admin who last modified the contact (reference to Admin model).
+ * @property {Date} creationDate - Date the contact was created (automatically filled, not null).
+ * @property {Date} sendDate - Date the contact was sent (automatically filled, not null).
+ * @property {Date} modifiedAt - Date the contact was last modified (automatically filled and updated).
  */
-const reportDetailsSchema = new Schema({
-  cause: { type: String, enum: ['condcta inapropiada', 'conducta sospechosa', 'estafa', 'negligencia', 'otro'] },
-  description: { type: String },
+const ContactSchema = new Schema({
+  senderId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+  },
+  receiverId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User', // Assuming 'prof' is a role within the User model
+    required: true,
+  },
+  affair: {
+    type: String,
+    enum: ['agendarCita', 'calificacion', 'rechazo', 'cancelacion', 'reporte'],
+    required: true,
+  },
+  cause: {
+    type: String,
+    enum: ['conductaInapropiada', 'conductaSospechosa', 'estafa', 'negligencia', 'otro'],
+    required: function () {
+      return this.affair === 'reporte';
+    },
+  },
+  description: {
+    type: String,
+    required: function () {
+      return this.affair === 'reporte';
+    },
+  },
+  isDeleted: {
+    type: Boolean,
+    default: false,
+    index: true,
+  },
+  isSent: {
+    type: Boolean,
+    default: false,
+    index: true,
+  },
+  modifiedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User', 
+  },
+  sendDate: {
+    type: Date,
+    default: Date.now,
+    required: true,
+  },
+},
+{
+  timestamps: true,
 });
 
-/**
- * @typedef ContactSchema
- * @property {mongoose.Schema.Types.ObjectId} _id - ID único del contacto/interacción (generado automáticamente por MongoDB).
- * @property {mongoose.Schema.Types.ObjectId} senderId - ID del usuario que inicia el contacto (referencia a la colección 'User').
- * @property {mongoose.Schema.Types.ObjectId} reciverId - ID del profesional que recibe el contacto (referencia a la colección 'User' con rol 'prof').
- * @property {string} affair - Tipo de interacción o asunto del contacto.
- * @property {ReportDetails} [report] - Detalles específicos si el asunto es un 'reporte'.
- * @property {boolean} is_deleted - Indica si este contacto ha sido eliminado lógicamente (indexado, valor por defecto: false).
- * @property {boolean} is_sent - Indica si este contacto ha sido enviado (indexado, valor por defecto: false).
- * @property {mongoose.Schema.Types.ObjectId} modified_by - ID del administrador que modificó este contacto por última vez (referencia a la colección 'Admin').
- * @property {Date} creationDate - Fecha de creación del contacto (se llena automáticamente al crear el documento, no nulo).
- * @property {Date} sendDate - Fecha en que se envió el contacto (se llena automáticamente al crear el documento, no nulo).
- * @property {Date} modifiedAt - Fecha de última modificación del contacto (se llena y actualiza automáticamente).
- */
-const contactSchema = new Schema({
-  _id: { type: mongoose.Schema.Types.ObjectId, auto: true },
-  senderId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  reciverId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  affair: { type: String, enum: ['cita', 'calificacion', 'rechazo', 'cancelacion', 'reporte'], required: true },
-  report: { type: reportDetailsSchema, required: function() { return this.affair === 'reporte'; } },
-  is_deleted: { type: Boolean, default: false, index: true },
-  is_sent: { type: Boolean, default: false, index: true },
-  modified_by: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' },
-  creationDate: { type: Date, default: Date.now, required: true },
-  sendDate: { type: Date, default: Date.now, required: true },
-  modifiedAt: { type: Date, default: Date.now },
-});
+ContactSchema.plugin(moongoosePaginate);//add pagination
 
-// Middleware para actualizar la fecha de modificación al guardar
-contactSchema.pre('save', function (next) {
-  this.modifiedAt = new Date();
-  next();
-});
-
-const Contact = mongoose.model('Contact', contactSchema);
+const Contact = mongoose.model('Contact', ContactSchema);
 
 export default Contact;

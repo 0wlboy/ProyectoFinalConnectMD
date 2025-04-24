@@ -1,171 +1,274 @@
 import mongoose, { Schema } from 'mongoose';
-import moongoosePaginate from "mongoose-paginate-v2"; //importar modulo paginacion
 import mongooseBcrypt from "mongoose-bcrypt";
+import moongoosePaginate from "mongoose-paginate-v2"; //importar modulo paginacion
+
+
+// Expresiones regulares para validaciones
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const nameRegex = /^[a-zA-Z\s]+$/;
+const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/; //Minimo 8 caracteres, almenos una minuscula, una mayuscula, un caracter especial: @$!%*?& 
 
 /**
- * @typedef Localizacion
- * @property {string} address - Dirección de la localización.
- */
-const localizacionSchema = new Schema({
-  address: { type: String, required: true },
-  numTelf: { type: String },
-});
-
-/**
- * @typedef ContactHistory
- * @property {mongoose.Schema.Types.ObjectId} user_id - ID del usuario relacionado con el contacto (referencia a la colección 'Contacts').
- * @property {string} affair - Tipo de contacto realizado.
- * @property {Date} contactDate - Fecha en que se realizó el contacto (se llena automáticamente al crear el documento).
+ * @typedef {object} ContactHistory
+ * @property {mongoose.Schema.Types.ObjectId} userId - ID of the related user.
+ * @property {string} affair - Type of contact (schedule appointment, cancellation, rejection, rating, report).
+ * @property {Date} contactDate - Date of contact (automatically filled).
  */
 const contactHistorySchema = new Schema({
-  user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Contacts' },
-  affair: { type: String, enum: ['agendar cita', 'cancelacion', 'rechazo', 'calificacion', 'reporte'] },
-  contactDate: { type: Date, default: Date.now },
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Contact',
+  },
+  affair: {
+    type: String,
+    enum: ['agendarCita', 'cancelacion', 'rechazo', 'calificacion', 'reporte'],
+  },
+  contactDate: {
+    type: Date,
+    default: Date.now,
+  },
 });
 
 /**
- * @typedef Review
- * @property {mongoose.Schema.Types.ObjectId} reviewID - ID único de la revisión.
- * @property {mongoose.Schema.Types.ObjectId} userId - ID del usuario que realizó la revisión (referencia a la colección 'User').
- * @property {number} stars - Calificación otorgada (un número entero).
- * @property {mongoose.Schema.Types.ObjectId} modifyBy - ID del usuario o administrador que modificó la revisión por última vez (referencia a la colección 'User' o 'Admin').
- * @property {boolean} is_deleted - Indica si la revisión ha sido eliminada lógicamente (indexado, valor por defecto: false).
- * @property {Date} creationDate - Fecha de creación de la revisión (se llena automáticamente al crear el documento).
- * @property {Date} updateDate - Fecha de última actualización de la revisión (se llena automáticamente al actualizar el documento).
+ * @typedef {object} Review
+ * @property {mongoose.Schema.Types.ObjectId} reviewId - ID of the review.
+ * @property {mongoose.Schema.Types.ObjectId} userId - ID of the user who created the review (reference to Users).
+ * @property {number} stars - Star rating.
+ * @property {mongoose.Schema.Types.ObjectId} modifiedBy - ID of the user or admin who modified the review (reference to Users or Admin).
+ * @property {boolean} isDeleted - Indicates if the review has been logically deleted (default: false, indexed).
+ * @property {Date} createdAt - Date the review was created (automatically filled, not null).
+ * @default Date.now
+ * @property {Date} updateAt - Date the review was last updated (automatically filled and updated).
+ * @default Date.now
  */
 const reviewSchema = new Schema({
-  reviewID: { type: mongoose.Schema.Types.ObjectId },
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  stars: { type: Number },
-  modifyBy: { type: mongoose.Schema.Types.ObjectId, refPath: 'onModelModifyBy' },
-  onModelModifyBy: { type: String, enum: ['User', 'Admin'] },
-  is_deleted: { type: Boolean, default: false, index: true },
-  creationDate: { type: Date, default: Date.now, required: true },
-  updateDate: { type: Date, default: Date.now },
+  reviewId: {
+    type: mongoose.Schema.Types.ObjectId,
+    auto: true,
+  },
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  },
+  stars: {
+    type: Number,
+    min: 1,
+    max: 5,
+  },
+  modifiedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    refPath: 'modifiedByType',
+  },
+  modifiedByType: {
+    type: String,
+    enum: ['User', 'Admin'],
+  },
+  isDeleted: {
+    type: Boolean,
+    default: false,
+    index: true,
+  },
+},
+{
+  timestamps: true,
 });
 
 /**
- * @typedef ProfileVisits
- * @property {mongoose.Schema.Types.ObjectId} userId - ID del usuario que visitó el perfil (referencia a la colección 'User').
- * @property {Date} visitDate - Fecha de la visita (se llena automáticamente al crear el documento).
+ * @typedef {object} ProfileVisit
+ * @property {mongoose.Schema.Types.ObjectId} userId - ID of the user who visited the profile (reference to Users).
+ * @property {Date} visitDate - Date of the visit (automatically filled).
  */
-const profileVisitsSchema = new Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  visitDate: { type: Date, default: Date.now },
+const profileVisitSchema = new Schema({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  },
+  visitDate: {
+    type: Date,
+    default: Date.now,
+  },
 });
 
 /**
- * @typedef HistoricalLogin
- * @property {string} device - Dispositivo desde el que se inició sesión.
- * @property {string} location - Ubicación desde donde se inició sesión.
- * @property {string} ip_address - Dirección IP desde donde se inició sesión.
+ * @typedef {object} HistoricalLogin
+ * @property {string} device - Device from which the login occurred.
+ * @property {string} location - Location from which the login occurred.
+ * @property {string} ipAddress - IP address from which the login occurred.
+ * @property {Date} accessedAt - Date and time of login (only for accessHistory).
  */
 const historicalLoginSchema = new Schema({
-  device: { type: String },
-  location: { type: String },
-  ip_address: { type: String },
+  device: String,
+  location: String,
+  ipAddress: String,
+  accessedAt: Date, // Only for accessHistory
 });
 
 /**
- * @typedef AccessHistory
- * @property {HistoricalLogin} historicalLogins - Detalles del inicio de sesión histórico.
- * @property {Date} accessed_at - Fecha y hora del acceso.
- */
-const accessHistorySchema = new Schema({
-  historicalLogins: historicalLoginSchema,
-  accessed_at: { type: Date },
-});
-
-/**
- * @typedef HistoricalPassword
- * @property {string} historicalPasswords - Contraseña hasheada antigua.
- * @property {Date} change_at - Fecha en que se cambió la contraseña.
+ * @typedef {object} HistoricalPassword
+ * @property {string} password - Hashed password.
+ * @property {Date} changedAt - Date when the password was changed.
  */
 const historicalPasswordSchema = new Schema({
-  historicalPasswords: { type: String },
-  change_at: { type: Date },
+  password: String, // Expected to be already hashed
+  changedAt: Date,
 });
 
 /**
- * @typedef UserSchema
- * @property {mongoose.Schema.Types.ObjectId} _id - ID único del usuario (generado automáticamente por MongoDB).
- * @property {string} correo - Correo electrónico del usuario (único y no nulo).
- * @property {string} Nombre - Nombre del usuario (no nulo).
- * @property {string} Apellido - Apellido del usuario (no nulo).
- * @property {string} fotoPerfil - URL o ruta a la foto de perfil del usuario (no nulo).
- * @property {Localizacion[]} localizacion - Array de objetos con la dirección y número de teléfono del usuario.
- * @property {string} contraseña - Contraseña hasheada del usuario (única y no nula).
- * @property {string} rol - Rol del usuario (no nulo, valores permitidos: 'cliente', 'prof', 'admin').
- * @property {ContactHistory[]} contact_history - Historial de contactos del usuario (array de referencias a la colección 'Contact').
- * @property {string} [fotosOficinas] - URL o ruta a las fotos de las oficinas del profesional (solo para profesionales).
- * @property {string} [profesion] - Profesión del usuario (solo para profesionales).
- * @property {string} [especializacion] - Especialización del profesional (solo para profesionales).
- * @property {Review[]} review - Revisiones realizadas por o sobre el usuario.
- * @property {ProfileVisits[]} profileVisits - Historial de visitas al perfil del usuario.
- * @property {HistoricalLogin[]} historicalLogins - Historial de inicios de sesión del usuario.
- * @property {AccessHistory[]} access_history - Historial de accesos del usuario.
- * @property {HistoricalPassword[]} historialContraseña - Historial de contraseñas antiguas del usuario.
- * @property {number} TotalLoginCount - Contador total de inicios de sesión (se llena e incrementa automáticamente, no nulo).
- * @property {Date} LastLogin - Fecha del último inicio de sesión (se llena y actualiza automáticamente, no nulo).
- * @property {boolean} IsVerified - Indica si la cuenta del usuario está verificada (valor por defecto: false).
- * @property {number} strikes - Número de strikes o penalizaciones del usuario (valor por defecto: 0).
- * @property {boolean} isSuspended - Indica si la cuenta del usuario está suspendida (valor por defecto: false).
- * @property {boolean} is_deleted - Indica si el usuario ha sido eliminado lógicamente (indexado, valor por defecto: false).
- * @property {object} old_data - Snapshot de los datos del usuario antes de la última modificación.
- * @property {mongoose.Schema.Types.ObjectId} modified_by - ID del administrador o usuario que modificó el perfil por última vez (referencia a la colección 'Admin' o 'User').
- * @property {Date} fechaCreacion - Fecha de creación del usuario (se llena automáticamente al crear el documento, no nulo).
- * @property {Date} fechaModificacion - Fecha de última modificación del usuario (se llena y actualiza automáticamente).
+ * @typedef {object} Location
+ * @property {string} address - Address of the location (not null).
+ * @property {string} phone - Phone number of the location.
  */
-const userSchema = new Schema({
-  _id: { type: mongoose.Schema.Types.ObjectId, auto: true },
-  correo: { type: String, unique: true, required: true },
-  Nombre: { type: String, required: true },
-  Apellido: { type: String, required: true },
-  fotoPerfil: { type: String, required: true },
-  localizacion: [localizacionSchema],
-  password: { type: String, bcrypt: true , unique: true, required: true },
-  rol: { type: String, enum: ['cliente', 'prof', 'admin'], required: true },
-  contact_history: [contactHistorySchema],
-  fotosOficinas: { type: String },
-  profesion: { type: String },
-  especializacion: { type: String },
-  review: [reviewSchema],
-  profileVisits: [profileVisitsSchema],
+const locationSchema = new Schema({
+  address: {
+    type: String,
+    required: true,
+  },
+  phone: String,
+});
+
+/**
+ * @typedef {object} User
+ * @property {mongoose.Schema.Types.ObjectId} _id - Unique ID of the user (ObjectId).
+ * @property {string} email - Unique and non-null email address, with format validation.
+ * @property {string} firstName - First name of the user (not null, with format validation).
+ * @property {string} lastName - Last name of the user (not null, with format validation).
+ * @property {string} profilePicture - URL or path to the profile picture (not null).
+ * @property {Location[]} locations - Array of location objects.
+ * @property {string} password - Hashed, unique, and non-null password.
+ * @property {string} role - User role ('cliente', 'prof', 'admin', not null).
+ * @property {ContactHistory[]} contactHistory - History of contacts.
+ * @property {string} officePictures - URL or path to the office pictures (only for professionals, not null).
+ * @property {string} profession - Profession of the user (only for professionals, not null).
+ * @property {Review[]} reviews - Reviews created by or about the user.
+ * @property {ProfileVisit[]} profileVisits - History of profile visits.
+ * @property {HistoricalLogin[]} historicalLogins - History of login attempts.
+ * @property {HistoricalLogin[]} accessHistory - History of successful logins.
+ * @property {HistoricalPassword[]} passwordHistory - History of passwords.
+ * @property {number} totalLoginCount - Total number of logins (automatically filled and incremented, not null).
+ * @property {Date} lastLogin - Date of the last login (automatically filled and updated, not null).
+ * @property {boolean} isVerified - Indicates if the account is verified (default: false).
+ * @property {number} strikes - Number of strikes or warnings (default: 0).
+ * @property {boolean} isSuspended - Indicates if the account is suspended (default: false).
+ * @property {boolean} isDeleted - Indicates if the user has been logically deleted (default: false, indexed).
+ * @property {object} oldData - Snapshot of the data before the last modification.
+ * @property {mongoose.Schema.Types.ObjectId} modifiedBy - ID of the admin or user who last modified the record (reference to Admin or Users).
+ * @property {Date} createdAt - Date the user was created (automatically filled, not null).
+ * @default Date.now
+ * @property {Date} updateAt - Date the user was last modified (automatically filled and updated).
+ * @default Date.now
+ */
+const UserSchema = new Schema({
+  email: {
+    type: String,
+    unique: true,
+    required: [true, 'El correo electrónico es obligatorio.'],
+    match: [emailRegex, 'Por favor, introduce un correo electrónico válido.'],
+  },
+  firstName: {
+    type: String,
+    required: [true, 'El nombre es obligatorio.'],
+    match: [nameRegex, 'El nombre solo puede contener letras y espacios.'],
+  },
+  lastName: {
+    type: String,
+    required: [true, 'El apellido es obligatorio.'],
+    match: [nameRegex, 'El apellido solo puede contener letras y espacios.'],
+  },
+  profilePicture: {
+    type: String,
+    required: [true, 'La foto de perfil es obligatoria.'],
+  },
+  locations: [locationSchema],
+  password: {
+    type: String,
+    unique: true,
+    bcrypt: true,
+    required: [true, 'La contraseña es obligatoria.'],
+    match: [passwordRegex, 'La contraseña debe tener al menos 6 caracteres.'],
+  },
+  role: {
+    type: String,
+    enum: ['cliente', 'prof', 'admin'],
+    required: [true, 'El rol es obligatorio.'],
+  },
+  contactHistory: [contactHistorySchema],
+  officePictures: {
+    type: String,
+    required: function () {
+      return this.role === 'prof';
+    },
+    default: null,
+  },
+  profession: {
+    type: String,
+    enum: ['odontologo', 'medico general', 'cardiologo', 'pediatra', 'psicologo','fisioterapeuta','enfermero','ginecologo'],
+    required: function () {
+      return this.role === 'prof';
+    },
+    default: null,
+  },
+  reviews: [reviewSchema],
+  profileVisits: [profileVisitSchema],
   historicalLogins: [historicalLoginSchema],
-  access_history: [accessHistorySchema],
-  historialPassword: [historicalPasswordSchema],
-  TotalLoginCount: { type: Number, default: 0, required: true },
-  LastLogin: { type: Date, default: Date.now, required: true },
-  IsVerified: { type: Boolean, default: false },
-  strikes: { type: Number, default: 0 },
-  isSuspended: { type: Boolean, default: false },
-  is_deleted: { type: Boolean, default: false, index: true },
-  old_data: { type: Object },
-  modified_by: { type: mongoose.Schema.Types.ObjectId, refPath: 'onModelModifiedBy' },
-  onModelModifiedBy: { type: String, enum: ['Admin', 'User'] },
-  fechaCreacion: { type: Date, default: Date.now, required: true },
-  fechaModificacion: { type: Date, default: Date.now },
+  accessHistory: [historicalLoginSchema],
+  passwordHistory: [historicalPasswordSchema],
+  totalLoginCount: {
+    type: Number,
+    default: 0,
+    required: true,
+  },
+  lastLogin: {
+    type: Date,
+    default: Date.now,
+    required: true,
+  },
+  isVerified: {
+    type: Boolean,
+    default: false,
+  },
+  strikes: {
+    type: Number,
+    default: 0,
+  },
+  isSuspended: {
+    type: Boolean,
+    default: false,
+  },
+  isDeleted: {
+    type: Boolean,
+    default: false,
+    index: true,
+  },
+  oldData: {
+    type: Object,
+  },
+  modifiedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    refPath: 'modifiedByType',
+  },
+  modifiedByType: {
+    type: String,
+    enum: ['admin', 'cliente'],
+    default: 'cliente',
+  },
+},
+{
+  timestamps: true,
 });
 
+UserSchema.plugin(moongoosePaginate);//add pagination
+UserSchema.plugin(mongooseBcrypt);//add encryption
 
-userSchema.plugin(moongoosePaginate);//agregar paginacion al esquema
-userSchema.plugin(mongooseBcrypt);//agregar encriptacion
 
-// Middleware para actualizar la fecha de modificación al guardar
-userSchema.pre('save', function (next) {
-  this.fechaModificacion = new Date();
-  next();
-});
-
-// Middleware para actualizar la fecha del último login
-userSchema.pre('save', function (next) {
-  if (this.isModified('TotalLoginCount') && this.TotalLoginCount > 0) {
-    this.LastLogin = new Date();
+// Middleware to increment the login count on updating lastLogin
+UserSchema.pre('findOneAndUpdate', async function (next) {
+  const update = this.getUpdate();
+  if (update.$set && update.$set.lastLogin) {
+    await this.model.updateOne({ _id: this.getQuery()._id }, { $inc: { totalLoginCount: 1 } });
   }
   next();
 });
 
-const User = mongoose.model('User', userSchema);
+const User = mongoose.model('User', UserSchema);
 
-//exportar modelo
 export default User;
