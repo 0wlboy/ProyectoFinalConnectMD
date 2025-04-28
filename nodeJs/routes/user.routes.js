@@ -16,7 +16,7 @@ const userRouter = express.Router();
  * @returns {Object} The created user.
  * @example POST http://localhost:3001/users
  */
-userRouter.post('/users', UserController.createUser);
+userRouter.post("/users", UserController.createUser);
 
 /**
  * @route GET /users

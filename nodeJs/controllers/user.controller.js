@@ -1,4 +1,4 @@
-import User from '../models/users.js'; // Asegúrate de que la ruta al modelo sea correcta
+import User from '../models/users.models.js'; 
 import mongoose from 'mongoose';
 
 /**
@@ -17,8 +17,9 @@ const UserController = {
    */
   async createUser(req, res) {
     const { firstName, lastName, email, password, role, profilePicture, locations, profession, officePictures } = req.body;
+    console.log(req.body);
     try {
-      const user = new UserModel({ firstName, lastName, email, password, role, profilePicture, locations, profession, officePictures });
+      const user = new User({ firstName, lastName, email, password, role, profilePicture, locations, profession, officePictures });
       await user.save();
       res.status(201).json({ message: 'Usuario creado con éxito' }); // 201 Created
     } catch (error) {
