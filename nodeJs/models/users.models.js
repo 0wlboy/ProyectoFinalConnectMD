@@ -5,7 +5,7 @@ import moongoosePaginate from "mongoose-paginate-v2"; //importar modulo paginaci
 
 // Expresiones regulares para validaciones
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const nameRegex = /^[a-zA-Z\s]+$/;
+const nameRegex =  /^[a-zA-ZáéíóúüñÑ\s]+$/;
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/; //Minimo 8 caracteres, almenos una minuscula, una mayuscula, un caracter especial: @$!%*?& 
 
 /**
