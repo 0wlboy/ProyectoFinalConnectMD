@@ -1,4 +1,30 @@
 import mongoose, { Schema } from 'mongoose';
+import moongoosePaginate from "mongoose-paginate-v2"; //importar modulo paginacion
+import User from "./user.model.js";
+
+
+/**
+ * @typedef {object} DeletedInfo
+ * @property {boolean} isDeleted - Flag indicating if the entity is logically deleted. Indexed.
+ * @property {mongoose.Schema.Types.ObjectId} isDeletedBy - ID of the user who performed the deletion. References 'User'.
+ * @property {Date} deletedAt - Timestamp of the deletion.
+ */
+const DeletedSchema = new Schema({
+  isDeleted: {
+    type: Boolean,
+    default: false,
+    index: true,
+  },
+  isDeletedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: User,
+  },
+  deletedAt: {
+    type: Date,
+  },
+},{
+  _id: false
+})
 
 /**
  * @typedef {object} Feedback
@@ -8,13 +34,11 @@ import mongoose, { Schema } from 'mongoose';
  * @property {string} message - The feedback message.
  * @property {boolean} isDeleted - Indicates if the feedback has been logically deleted (default: false, indexed).
  * @property {mongoose.Schema.Types.ObjectId} modifiedBy - ID of the user who last modified the feedback (reference to User).
- * @property {Date} creationDate - Date the feedback was created (automatically filled, not null).
- * @property {Date} modificationDate - Date the feedback was last modified (automatically filled and updated).
  */
 const FeedbackSchema = new Schema({
   senderId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: User,
     required: true,
   },
   affair: {
@@ -24,21 +48,20 @@ const FeedbackSchema = new Schema({
   },
   message: {
     type: String,
+    required: true,
+    trim:true
   },
-  isDeleted: {
-    type: Boolean,
-    default: false,
-    index: true,
-  },
+  deleted: DeletedSchema,
   modifiedBy: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: User,
   },
 },
 {
   timestamps: true
 });
 
+FeedbackSchema.plugin(moongoosePaginate)// add pagination
 
 const FeedbackModel = mongoose.model('Feedback', FeedbackSchema);
 

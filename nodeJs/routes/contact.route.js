@@ -1,5 +1,5 @@
 import express from 'express';
-import ContactController from '../controllers/contacts.controller.js'; // Asegúrate de que la ruta al controlador sea correcta
+import ContactController from '../controllers/contact.controller.js'; // Asegúrate de que la ruta al controlador sea correcta
 
 const contactRouter = express.Router();
 
@@ -19,12 +19,21 @@ contactRouter.post('/contacts', ContactController.createContact);
 
 /**
  * @route GET /contacts
- * @description Retrieves all contacts.
+ * @description Retrieves all not deleted contacts.
  * @access Public
- * @returns {Array} List of contacts.
+ * @returns {Array} List of not deleted contacts.
  * @example GET http://localhost:3001/contacts
  */
 contactRouter.get('/contacts', ContactController.getAllContacts);
+
+/**
+ * @route GET /contacts/deleted
+ * @description Retrieves all deleted contacts.
+ * @access Public
+ * @returns {Array} List of deleted contacts.
+ * @example GET http://localhost:3001/contacts/deleted
+ */
+contactRouter.get('/contacts/deleted', ContactController.getAllDeletedContacts);
 
 /**
  * @route GET /contacts/:id
@@ -45,12 +54,12 @@ contactRouter.get('/contacts/:id', ContactController.getContactById);
 contactRouter.patch('/contacts/:id', ContactController.updateContact);
 
 /**
- * @route DELETE /contacts/:id
- * @description Deletes a contact by their ID.
+ * @route PATCH /contacts/:id
+ * @description Logicaly deletes a contact by their ID.
  * @returns {string} Success message.
  * @access Private
- * @example DELETE http://localhost:3001/contacts/6160171b1494489759d31572
+ * @example PATCH http://localhost:3001/contacts/6160171b1494489759d31572
  */
-contactRouter.delete('/contacts/:id', ContactController.deleteContact);
+contactRouter.patch('/contacts/:id', ContactController.deleteContact);
 
 export default contactRouter;

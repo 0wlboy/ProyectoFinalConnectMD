@@ -1,8 +1,10 @@
 import express, { json } from 'express'; //import express
 import cors from "cors"; //import cors
 import "./database/connection.js" //import connection to database
-import userRouter from "./routes/user.routes.js" //import routes users
-import contactRouter from "./routes/contacts.routes.js" //import routes contacts"
+import userRouter from "./routes/user.route.js" //import routes users
+import contactRouter from "./routes/contact.route.js" //import routes contacts"
+import feedbackRouter from "./routes/feedback.route.js" //import routes feedback
+
 
 const app = express(); // Create server with express
 const port = 3001;//create port
@@ -22,7 +24,7 @@ const corsOptions = {
 
 app.use(cors(corsOptions)); //using cors
 app.use(json());// Middleware for JSON
-app.use([userRouter, contactRouter]);//middleware for routes
+app.use([userRouter, contactRouter, feedbackRouter]);//routes
 
 //start server
 app.listen(port, () => {

@@ -1,4 +1,4 @@
-import User from '../models/users.models.js';
+import User from '../models/user.model.js';
 import mongoose from 'mongoose';
 
 /**
@@ -52,26 +52,16 @@ export const createUser = async (req, res) => {
  * @example GET http://localhost:3001/users?page=2&limit=10
  */
 export const getAllUsers = async (req, res) => {
-  let { firstName, lastName, role, profession, page = 1, limit = 10, sortBy, sortOrder = 'asc'} = req.query;
+  let { firstName, lastName, role, profession, page = 1, limit = 10, sortBy='createdAt', sortOrder = 'desc'} = req.query;
   const query = {};
-  const sort = {};
 
-  page = parseInt(page, 10);
-  limit = parseInt(limit, 10);
-
-  if (isNaN(page) || page <= 0) {
-    page = 1;
-  }
-  if (isNaN(limit) || limit <= 0) {
-    limit = 10;
-  }
-  const skip = (page - 1) * limit;
 
   if (firstName) {
     query.firstName = new RegExp(firstName, 'i');
+
   }
   if (lastName) {
-    query.lastName = new RegExp(firstName, 'i');
+    query.lastName = new RegExp(lastName, 'i');
   }
   if (role) {
     query.role = role;
@@ -80,22 +70,82 @@ export const getAllUsers = async (req, res) => {
     query.profession = profession;
   }
 
-  if (sortBy) {
-    sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
-  } else {
-    sort['createdAt'] = -1; //default order: from most recent to most old
-  }
+  query['deleted.isDeleted'] = false;
 
+  const options = {
+    page: parseInt(page, 10) || 1,
+    limit: parseInt(limit, 10) || 10,
+    sort: { [sortBy]: sortOrder === 'asc' ? 1 : -1 },
+    lean: true 
+   
+  };
   try {
-    const users = await User.find(query).skip(skip).limit(limit).sort(sort);
-    const totalUsers = await User.countDocuments(query);
+    const result = await User.paginate(query, options);
+    const users = result.docs;
+    const totalUsers = result.total;
 
     res.status(200).json({
       users,
       page,
       limit,
       total: totalUsers,
-      totalPages: Math.ceil(totalUsers / limit),
+      totalPages: result.totalPages,
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error retrieving users', error });
+  }
+};
+
+/**
+ * @async
+ * @function getAllDeletedUsers
+ * @description Retrieves all users from the database. Supports optional name filtering and pagination.
+ * @param {Object} req - HTTP request object.
+ * @param {Object} res - HTTP response object.
+ * @returns {Array} users
+ * @example GET http://localhost:3001/users
+ * @example GET http://localhost:3001/users?firstName=John&role=Admin&profession=Cirujano&sortBy=firstName
+ * @example GET http://localhost:3001/users?page=2&limit=10
+ */
+export const getAllDeletedUsers = async (req, res) => {
+  let { firstName, lastName, role, profession, page = 1, limit = 10, sortBy ='createdAt', sortOrder = 'desc'} = req.query;
+  const query = {};
+  
+
+  if (firstName) {
+    query.firstName = new RegExp(firstName, 'i');
+
+  }
+  if (lastName) {
+    query.lastName = new RegExp(lastName, 'i');
+  }
+  if (role) {
+    query.role = role;
+  }
+  if (profession) {
+    query.profession = profession;
+  }
+
+  query['deleted.isDeleted'] = true;
+
+  const options = {
+    page: parseInt(page, 10) || 1,
+    limit: parseInt(limit, 10) || 10,
+    sort: { [sortBy]: sortOrder === 'asc' ? 1 : -1 },
+    lean: true 
+   
+  };
+  try {
+    const result = await User.paginate(query, options);
+    const users = result.docs;
+    const totalUsers = result.total;
+
+    res.status(200).json({
+      users,
+      page,
+      limit,
+      total: totalUsers,
+      totalPages: result.totalPages,
     });
   } catch (error) {
     res.status(500).json({ message: 'Error retrieving users', error });
@@ -165,25 +215,53 @@ export const updateUser = async (req, res) => {
 /**
  * @async
  * @function deleteUser
- * @description Deletes a user from the database by their ID.
+ * @description Logically deletes a user by setting the 'deleted' flag.
  * @param {Object} req - HTTP request object.
  * @param {Object} res - HTTP response object.
- * @returns {string} message 
- * @example DELETE http://localhost:3001/users/6160171b1494489759d31572
+ * @param {string} req.params.id - The ID of the user to delete.
+ * @param {string} req.body.deletedBy - The ID of the user performing the deletion. 
+ * @returns {string} message
+ * @example PATCH http://localhost:3001/users/6160171b1494489759d31572 
  */
 export const deleteUser = async (req, res) => {
   const { id } = req.params;
+  const { deletedBy } = req.body; 
+
   try {
+    // Validate the ID of the user to be deleted
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: 'Invalid user ID' });
+      return res.status(400).json({ message: 'ID de usuario inválido' }); 
     }
-    const deletedUser = await User.findByIdAndDelete(id);
-    if (!deletedUser) {
-      return res.status(404).json({ message: 'User not found' });
+    // Validate the ID of the user performing the deletion
+    if (!mongoose.Types.ObjectId.isValid(deletedBy)) {
+      return res.status(400).json({ message: 'ID de usuario eliminador inválido' }); // Mensaje en español
     }
-    res.status(200).json({ message: 'User deleted successfully' });
+
+    // Find the user by ID
+    const user = await User.findById(id);
+
+    // Handle case where user is not found
+    if (!user) {
+      return res.status(404).json({ message: 'Usuario no encontrado' }); // Mensaje en español
+    }
+
+    // Check if already deleted to avoid redundant saves (optional but good practice)
+    if (user.deleted?.isDeleted) {
+        return res.status(200).json({ message: 'El usuario ya ha sido eliminado previamente' });
+    }
+
+
+    // Update the deleted field for soft delete
+    user.deleted = { isDeleted: true, isDeletedBy: deletedBy, deletedAt: new Date() };
+
+    // Save the changes
+    await user.save();
+
+    // Send success response
+    res.status(200).json({ message: 'Usuario eliminado con éxito' }); // Mensaje en español
+
   } catch (error) {
-    res.status(500).json({ message: 'Error deleting user', error });
+    res.status(500).json({ message: 'Error al eliminar el usuario', error: error.message });
   }
 };
 
@@ -191,6 +269,7 @@ export const deleteUser = async (req, res) => {
 const UserController = {
   createUser,
   getAllUsers,
+  getAllDeletedUsers,
   getUserById,
   updateUser,
   deleteUser

@@ -1,5 +1,6 @@
 import express from 'express';
 import FeedbackController from '../controllers/feedback.controller.js'; 
+import { isAuthenticated } from '../middleware/aunth.middleware.js';
 
 const feedbackRouter = express.Router();
 
@@ -19,12 +20,21 @@ feedbackRouter.post('/feedback', FeedbackController.createFeedback);
 
 /**
  * @route GET /feedback
- * @description Retrieves all feedback entries.
+ * @description Retrieves all not deleted feedback entries.
  * @access Public
- * @returns {Array} List of feedback entries.
+ * @returns {Array} List of not deleted feedback entries.
  * @example GET http://localhost:3001/feedback
  */
 feedbackRouter.get('/feedback', FeedbackController.getAllFeedback);
+
+/**
+ * @route GET /feedback/deleted
+ * @description Retrieves all deleted feedback entries.
+ * @access Public
+ * @returns {Array} List of deleted feedback entries.
+ * @example GET http://localhost:3001/feedback/deleted
+ */
+feedbackRouter.get('/feedback/deleted',isAuthenticated, FeedbackController.getAllDeletedFeedback);
 
 /**
  * @route GET /feedback/:id
@@ -45,12 +55,12 @@ feedbackRouter.get('/feedback/:id', FeedbackController.getFeedbackById);
 feedbackRouter.patch('/feedback/:id', FeedbackController.updateFeedback);
 
 /**
- * @route DELETE /feedback/:id
- * @description Deletes a feedback entry by its ID.
+ * @route PATCH /feedback/:id
+ * @description Logicaly deletes a feedback entry by its ID.
  * @returns {string} Success message.
  * @access Private
- * @example DELETE http://localhost:3001/feedback/6160171b1494489759d31572
+ * @example PATCH http://localhost:3001/feedback/6160171b1494489759d31572
  */
-feedbackRouter.delete('/feedback/:id', FeedbackController.deleteFeedback);
+feedbackRouter.patch('/feedback/:id', FeedbackController.deleteFeedback);
 
 export default feedbackRouter;

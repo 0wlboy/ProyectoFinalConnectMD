@@ -1,5 +1,31 @@
 import mongoose, { Schema } from 'mongoose';
 import moongoosePaginate from "mongoose-paginate-v2"; //importar modulo paginacion
+import User from "./user.model.js";
+
+
+/**
+ * @typedef {object} DeletedInfo
+ * @property {boolean} isDeleted - Flag indicating if the entity is logically deleted. Indexed.
+ * @property {mongoose.Schema.Types.ObjectId} isDeletedBy - ID of the user who performed the deletion. References 'User'.
+ * @property {Date} deletedAt - Timestamp of the deletion.
+ */
+const DeletedSchema = new Schema({
+  isDeleted: {
+    type: Boolean,
+    default: false,
+    index: true,
+  },
+  isDeletedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: User,
+  },
+  deletedAt: {
+    type: Date,
+  },
+},{
+  _id: false
+})
+
 
 /**
  * @typedef {object} Contact
@@ -19,12 +45,12 @@ import moongoosePaginate from "mongoose-paginate-v2"; //importar modulo paginaci
 const ContactSchema = new Schema({
   senderId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: User,
     required: true,
   },
   receiverId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User', // Assuming 'prof' is a role within the User model
+    ref: User, // Assuming 'prof' is a role within the User model
     required: true,
   },
   affair: {
@@ -45,11 +71,7 @@ const ContactSchema = new Schema({
       return this.affair === 'reporte';
     },
   },
-  isDeleted: {
-    type: Boolean,
-    default: false,
-    index: true,
-  },
+  deleted: DeletedSchema,
   isSent: {
     type: Boolean,
     default: false,

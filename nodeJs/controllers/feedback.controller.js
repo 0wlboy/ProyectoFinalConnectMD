@@ -1,4 +1,4 @@
-import Feedback from '../models/feedback.models.js';
+import Feedback from '../models/feedback.model.js';
 import mongoose from 'mongoose';
 
 /**
@@ -46,20 +46,8 @@ export const createFeedback = async (req, res) => {
  * @example GET http://localhost:3001/feedback?page=2&limit=10
  */
 export const getAllFeedback = async (req, res) => {
-  let {senderId, affair, page = 1, limit = 10, sortBy, sortOrder = 'asc' } = req.query;
+  let {senderId, affair, page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
   const query = {}
-  const sort = {}
-
-  page = parseInt(page, 10);
-  limit = parseInt(limit, 10);
-
-  if (isNaN(page) || page <= 0) {
-    page = 1;
-  }
-  if (isNaN(limit) || limit <= 0) {
-    limit = 10;
-  }
-  const skip = (page - 1) * limit;
 
   if (senderId) {
     query.senderId = senderId;
@@ -68,21 +56,75 @@ export const getAllFeedback = async (req, res) => {
     query.affair = affair;
   }
 
-  if (sortBy) {
-    sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
-  } else {
-    sort['createdAt'] = -1; //default order: from most recent to most old
-  }
+  query['deleted.isDeleted'] = false;
+
+  const options = {
+    page: parseInt(page, 10) || 1,
+    limit: parseInt(limit, 10) || 10,
+    sort: { [sortBy]: sortOrder === 'asc' ? 1 : -1 },
+    lean: true 
+  };
 
   try {
-    const feedback = await Feedback.find(query).skip(skip).limit(limit).sort(sort);
-    const totalFeedback = await Feedback.countDocuments();
+    const result = await Feedback.paginate(query,options);
+    const feedback = result.docs;
+    const totalFeedback = result.total;
+  
     res.status(200).json({
       feedback,
       page,
       limit,
       total: totalFeedback,
-      totalPages: Math.ceil(totalFeedback / limit),
+      totalPages: result.totalPages,
+    }); // 200 OK
+  } catch (error) {
+    res.status(500).json({ message: 'Error retrieving feedback', error }); // 500 Internal Server Error
+  }
+};
+
+/**
+ * @async
+ * @function getAllDeletedFeedback
+ * @description Retrieves all feedback entries from the database. Supports pagination.
+ * @param {Object} req - HTTP request object.
+ * @param {Object} res - HTTP response object.
+ * @param {objectId} senderId - sender Id
+ * @param {string} affair - affair
+ * @returns {Array} feedback
+ * @example GET http://localhost:3001/feedback
+ * @example GET http://localhost:3001/feedback?page=2&limit=10
+ */
+export const getAllDeletedFeedback = async (req, res) => {
+  let {senderId, affair, page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
+  const query = {}
+
+  if (senderId) {
+    query.senderId = senderId;
+  }
+  if (affair) {
+    query.affair = affair;
+  }
+
+  query['deleted.isDeleted'] = true;
+
+  const options = {
+    page: parseInt(page, 10) || 1,
+    limit: parseInt(limit, 10) || 10,
+    sort: { [sortBy]: sortOrder === 'asc' ? 1 : -1 },
+    lean: true 
+  };
+
+  try {
+    const result = await Feedback.paginate(query,options);
+    const feedback = result.docs;
+    const totalFeedback = result.total;
+  
+    res.status(200).json({
+      feedback,
+      page,
+      limit,
+      total: totalFeedback,
+      totalPages: result.totalPages,
     }); // 200 OK
   } catch (error) {
     res.status(500).json({ message: 'Error retrieving feedback', error }); // 500 Internal Server Error
@@ -154,31 +196,52 @@ export const updateFeedback = async (req, res) => {
 /**
  * @async
  * @function deleteFeedback
- * @description Deletes a feedback entry from the database by its ID.
+ * @description LogicaLly deletes a feedback entry from the database by its ID.
  * @param {Object} req - HTTP request object.
  * @param {Object} res - HTTP response object.
+ * @param {string} req.params.id - ID of the feedback to delete
+ * @param {string} req.body.deletedBy - ID of the user performin the deletion
  * @returns {string} message
- * @example DELETE http://localhost:3001/feedback/6160171b1494489759d31572
+ * @example PATCH http://localhost:3001/feedback/6160171b1494489759d31572 
  */
 export const deleteFeedback = async (req, res) => {
   const { id } = req.params;
+  const { deletedBy } = req.body;
+
   try {
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: 'Invalid feedback ID' }); // 400 Bad Request
+      return res.status(400).json({ message: 'ID de feedback inválido' }); // 400 Bad Request
     }
-    const deletedFeedback = await Feedback.findByIdAndDelete(id);
-    if (!deletedFeedback) {
-      return res.status(404).json({ message: 'Feedback not found' }); // 404 Not Found
+
+    if (!mongoose.Types.ObjectId.isValid(deletedBy)) {
+      return res.status(400).json({ message: 'ID de usuario eliminador inválido' }); // 404 Not Found
     }
-    res.status(200).json({ message: 'Feedback deleted successfully' }); // 200 OK
+
+    const feedback = await Feedback.findById(id);
+
+    if (!feedback) {
+      return res.status(404).json({ message: 'Feedback no encontrado' }); // 404 Not Found
+    }
+
+    if (feedback.deleted?.isDeleted) {
+      return res.status(200).json({ message: 'Feedback ya borrado' });
+    }
+
+    feedback.deleted = { isDeleted: true, isDeletedBy: deletedBy, deletedAt: new Date() };
+
+    await feedback.save();
+
+    res.status(200).json({ message: 'Feedback eliminado con éxito' }); //
+ 
   } catch (error) {
-    res.status(500).json({ message: 'Error deleting feedback', error }); // 500 Internal Server Error
+    res.status(500).json({ message: 'Error al eleminar feedback', error: error.message }); 
   }
 };
 
 const FeedbackController = {
   createFeedback,
   getAllFeedback,
+  getAllDeletedFeedback,
   getFeedbackById,
   updateFeedback,
   deleteFeedback,
