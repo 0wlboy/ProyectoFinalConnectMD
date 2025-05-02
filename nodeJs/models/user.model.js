@@ -1,6 +1,6 @@
 import mongoose, { Schema } from 'mongoose';
 import mongooseBcrypt from "mongoose-bcrypt";
-import moongoosePaginate from "mongoose-paginate-v2"; //importar modulo paginacion
+import mongoosePaginate from "mongoose-paginate-v2"; //importar modulo paginacion
 
 // Regular expressions for validation
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -9,6 +9,12 @@ const nameRegex =  /^[a-zA-ZáéíóúüñÑ\s'`-]+$/;
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
 
+/**
+ * @typedef {object} DeletedSchema
+ * @property {boolean} isDeleted  - Flag that indicate if the user is logicaly deleted
+ * @property {objectId} isDeletedBy - ID of the user how deleted the element
+ * @property {date} deletedAt - date of deletion
+ */
 const DeletedSchema = new Schema({
   isDeleted: {
     type: Boolean,
@@ -17,7 +23,7 @@ const DeletedSchema = new Schema({
   },
   isDeletedBy: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: User,
+    ref: 'User',
   },
   deletedAt: {
     type: Date,
@@ -28,7 +34,7 @@ const DeletedSchema = new Schema({
 
 /**
  * @typedef {object} HistoricalLogin
- * @property {Date} [loginDate=Date.now] - The date and time of the login attempt.
+ * @property {Date} loginDate - The date and time of the login attempt.
  * @property {string} device - The device information from which the login occurred. Required.
  * @property {string} ip - The IP address from which the login occurred. Required.
  */
@@ -45,11 +51,11 @@ const HistoricalLogin = new Schema({
     type: String,
     required: true,
   }
-},{_id: false}); // No separate _id for subdocuments
+},{_id: false}); 
 
 /**
  * @typedef {object} HistoricalPassword
- * @property {string} password - The hashed password string. Required.
+ * @property {string} password - The hashed password string.
  * @property {Date} [changedAt=Date.now] - The date and time when this password was set.
  */
 const HistoricalPassword = new Schema({
@@ -67,10 +73,10 @@ const HistoricalPassword = new Schema({
  * @typedef {object} User
  * @property {mongoose.Schema.Types.ObjectId} _id - Unique identifier for the user document (automatically generated).
  * @property {string} email - The user's email address. Must be unique, required, and match email format. Trimmed and lowercased.
- * @property {string} firstName - The user's first name. Required and must match name format. Trimmed.
- * @property {string} lastName - The user's last name. Required and must match name format. Trimmed.
- * @property {string} profilePicture - URL or path to the user's profile picture. Required.
- * @property {string[]} locations - An array of user's locations (e.g., office addresses).
+ * @property {string} firstName - The user's first name.
+ * @property {string} lastName - The user's last name.
+ * @property {string} profilePicture - URL or path to the user's profile picture.
+ * @property {Array<Object>} locations - An array of user's locations (e.g., office addresses).
  * @property {string} password - The user's hashed password. Required and must meet complexity requirements (handled by mongoose-bcrypt).
  * @property {string} role - The user's role within the system. Required. Must be one of 'cliente', 'prof', or 'admin'.
  * @property {string|null} profession - The user's profession. Required only if `role` is 'prof'. Must be one of the specified enum values or null. Defaults to null.
@@ -79,18 +85,14 @@ const HistoricalPassword = new Schema({
  * @property {HistoricalPassword[]} passwordHistory - An array storing the history of the user's last 3 passwords (managed by middleware).
  * @property {number} totalLoginCount - A counter for the total number of successful logins. Incremented by middleware.
  * @property {Date|null} lastLogin - The timestamp of the user's last successful login. Updated by middleware. Defaults to null.
- * @property {boolean} isVerified - Flag indicating if the user's account has been verified.
- * @property {number} strikes - A counter for warnings or strikes against the user account.
- * @property {boolean} isSuspended - Flag indicating if the user's account is currently suspended.
- * @property {boolean} isDeleted - Flag indicating if the user account has been logically deleted (soft delete). Indexed for performance.
- * @property {object} deletedRecord - An object containing details about the logical deletion, populated when `isDeleted` is set to true.
- * @property {mongoose.Schema.Types.ObjectId} deletedRecord.userId - The ID of the user (likely an admin) who performed the deletion. References 'User'.
- * @property {Date} [deletedRecord.deletedAt] - The timestamp when the user was marked as deleted.
- * @property {object} [oldData] - A field potentially used to store a snapshot of user data before modification (consider alternatives for large objects).
- * @property {mongoose.Schema.Types.ObjectId} [modifiedBy] - The ID of the user or admin who last modified this record. The referenced collection depends on `modifiedByType`.
- * @property {string} [modifiedByType='cliente'] - The type of user who performed the last modification. Must be one of 'admin', 'cliente', or 'prof'.
- * @property {Date} createdAt - Timestamp indicating when the user document was created (automatically managed by `timestamps: true`).
- * @property {Date} updatedAt - Timestamp indicating when the user document was last updated (automatically managed by `timestamps: true`).
+ * @property {boolean} isVerified - Flag indicating if the user's account has been verified. Defaults to false.
+ * @property {boolean} isSuspended - Flag indication if the user is suspended. Defaults to false.
+ * @property {DeletedSchema} deleted - Object for the information of deletion
+ * @property {number} strikes - A counter for warnings or strikes against the user account. Defaults to 0.
+ * @property {Object} oldData - A field potentially used to store a snapshot of user data before modification (consider alternatives for large objects).
+* @property {ModificationRecord[]} modificationHistory - Array tracking modification history.
+ * @property {Date} createdAt - Timestamp indicating when the user document was created.
+ * @property {Date} updatedAt - Timestamp indicating when the user document was last updated.
  */
 const UserSchema = new Schema({
   email: {
@@ -171,25 +173,27 @@ const UserSchema = new Schema({
     default: false,
   },
  deleted : DeletedSchema,
-  oldData: { // Consider if this is necessary or if a more specific audit log is better
+  oldData: { 
     type: Object,
   },
-  modifiedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    refPath: 'modifiedByType', // Dynamic reference based on modifier's role
-  },
-  modifiedByType: {
-    type: String,
-    enum: ['admin', 'cliente','prof'], // Include all possible modifier types
-    // default: 'cliente', // Consider if default is appropriate or should be set explicitly
-  },
+  modificationHistory : [{
+          userId: {
+              type: mongoose.Schema.Types.ObjectId,
+              ref: "User",
+              required: true,
+          },
+          modifiedDate: {
+              type: Date,
+              default: Date.now,
+          }
+      }],
 },
 {
   timestamps: true, // Automatically adds createdAt and updatedAt fields
 });
 
 // --- Plugins ---
-UserSchema.plugin(moongoosePaginate); // Adds pagination capabilities
+UserSchema.plugin(mongoosePaginate); // Adds pagination capabilities
 UserSchema.plugin(mongooseBcrypt); // Handles password hashing automatically
 
 // --- Middleware for Password History ---
@@ -220,14 +224,11 @@ UserSchema.pre('save', async function (next) {
 });
 
 // --- Middleware to Increment Login Count ---
-UserSchema.pre('findOneAndUpdate', async function (next) {
-  const update = this.getUpdate();
-  // Check if $set and lastLogin exist in the update operation
-  if (update?.$set?.lastLogin) {
-    // Increment totalLoginCount for the document being updated
-    await this.model.updateOne({ _id: this.getQuery()._id }, { $inc: { totalLoginCount: 1 } });
+UserSchema.pre('save', async function (next) {
+  if (this.isModified('lastLogin') && this.lastLogin !== null) {
+    this.totalLoginCount = (this.totalLoginCount || 0) + 1;
   }
-  next(); // Continue the findOneAndUpdate operation
+  next(); // Continue the save operation
 });
 
 // --- Middleware to Limit Login History ---
@@ -238,6 +239,32 @@ UserSchema.pre('save', function (next) {
     this.historicalLogins = this.historicalLogins.slice(-5);
   }
   next(); // Continue the save operation
+});
+
+// --- Middleware for oldData ---
+UserSchema.pre('save', async function(next) {
+  if (!this.isNew) {
+    try {
+      const oldDoc = await this.constructor.findById(this._id).lean();
+      if (oldDoc) {
+        delete oldDoc.oldData; 
+        delete oldDoc.passwordHistory; 
+        delete oldDoc.historicalLogins; 
+        delete oldDoc._id; 
+        delete oldDoc.createdAt; 
+        delete oldDoc.updatedAt;
+        delete oldDoc.password; 
+
+        this.oldData = oldDoc;
+      } else {
+        this.oldData = {};
+      }
+    } catch (error) {
+      console.error('Error al capturar oldData en pre-save:', error);
+      this.oldData = { error: 'Fallo al capturar estado previo' };
+    }
+  }
+  next(); 
 });
 
 // --- Model Export ---
