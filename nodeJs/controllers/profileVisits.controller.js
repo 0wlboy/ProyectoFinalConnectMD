@@ -193,11 +193,70 @@ export const createProfileVisit = async (req, res) => {
     }
 }
 
+
+// Controller function to delete a profile visit
+/**
+ * @async
+ * @function deleteProfileVisit
+ * @description Logically deletes a profile visit by setting the 'deleted' flag.
+ * @param {Object} req - HTTP request object.
+ * @param {Object} res - HTTP response object.
+ * @param {string} req.params.id - The ID of the profile visit to delete.
+ * @param {string} req.body.deletedBy - The ID of the user performing the deletion. 
+ * @returns {string} message
+ */
+export const deleteProfileVisit = async (req, res) => {
+  const { id } = req.params;
+  const { deletedBy } = req.body; 
+
+  try {
+    // Validate the ID of the profile visit to be deleted
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'ID de visita de perfil inválido' }); 
+    }
+    // Validate the ID of the user performing the deletion
+    if (!mongoose.Types.ObjectId.isValid(deletedBy)) {
+      return res.status(400).json({ message: 'ID de usuario eliminador inválido' });
+    }
+
+    const userId = await User.findById(deletedBy);
+    
+    if(!userId){
+      return res.status(404).json({ message: 'Usuario eliminador no encontrado' });
+    }
+    
+    // Find the profile visit by ID
+    const profileVisit = await ProfileVisit.findById(id);
+
+    // Handle case where profile visit is not found
+    if (!profileVisit) {
+      return res.status(404).json({ message: 'Visita de perfil no encontrada' });
+    }
+
+    // Check if already deleted to avoid redundant saves (optional but good practice)
+    if (profileVisit.deleted?.isDeleted) {
+         return res.status(200).json({ message: 'La visita de perfil ya ha sido eliminada previamente' });
+    }
+
+    // Since ProfileVisit doesn't have a 'deleted' field, we'll remove it completely
+    profileVisit.delete = { isDeleted: true, isDeletedBy: deletedBy, deletedAt: new Date()};
+
+    profileVisit.modificationHistory.push({ userId: deletedBy, modifiedDate: new Date() });
+
+    // Send success response
+    res.status(200).json({ message: 'Visita de perfil eliminada con éxito' });
+
+  } catch (error) {
+    res.status(500).json({ message: 'Error al eliminar la visita de perfil', error });
+  }
+}
+
 const VisitController = {
     getAllProfileVisits,
     getProfileVisitsByHostId,
     getProfileVisitsByVisitorId,
     createProfileVisit,
+    deleteProfileVisit,
 };
 
-export default VisitController;
+export default VisitController

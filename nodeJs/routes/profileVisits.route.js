@@ -47,4 +47,16 @@ visitRouter.get('/profileVisit/visitorId/:id', VisitController.getProfileVisitsB
  */
 visitRouter.get('/profileVisit/hostId/:id', VisitController.getProfileVisitsByHostId);
 
+/**
+ * @route PATCH /profileVisit/:id
+ * @description Lodically deletes a profile visit by its ID.
+ * @access Public
+ * @returns {string} Success message.
+ * @example PATCH http://localhost:3001/profileVisit/6160171b1494489759d31572
+ */
+visitRouter.patch('/profileVisit/delete/:id', VisitController.deleteProfileVisit);
+
+const profileVisitRouter = visitRouter;
+
+
 export default visitRouter;

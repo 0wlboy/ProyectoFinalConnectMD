@@ -50,17 +50,17 @@ feedbackRouter.get('/feedback/:id', FeedbackController.getFeedbackById);
  * @description Partially updates a feedback entry by its ID.
  * @returns {Object} The updated feedback.
  * @access Private
- * @example PATCH http://localhost:3001/feedback/6160171b1494489759d31572
+ * @example PATCH http://localhost:3001/feedback/update/6160171b1494489759d31572
  */
-feedbackRouter.patch('/feedback/:id', FeedbackController.updateFeedback);
+feedbackRouter.patch('/feedback/update/:id', FeedbackController.updateFeedback);
 
 /**
  * @route PATCH /feedback/:id
  * @description Logicaly deletes a feedback entry by its ID.
  * @returns {string} Success message.
  * @access Private
- * @example PATCH http://localhost:3001/feedback/6160171b1494489759d31572
+ * @example PATCH http://localhost:3001/feedback/delete/6160171b1494489759d31572
  */
-feedbackRouter.patch('/feedback/:id', FeedbackController.deleteFeedback);
+feedbackRouter.patch('/feedback/delete/:id', FeedbackController.deleteFeedback);
 
 export default feedbackRouter;

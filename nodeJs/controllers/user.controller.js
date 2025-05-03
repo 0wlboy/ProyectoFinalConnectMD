@@ -165,15 +165,15 @@ export const getUserById = async (req, res) => {
   const { id } = req.params;
   try {
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: 'Invalid user ID' });
+      return res.status(400).json({ message: 'ID de usuario inválido' });
     }
     const user = await User.findById(id);
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: 'Usuario no encontrado' });
     }
     res.status(200).json(user);
   } catch (error) {
-    res.status(500).json({ message: 'Error retrieving user', error });
+    res.status(500).json({ message: 'Error al recuperar el usuario', error });
   }
 };
 
@@ -183,32 +183,53 @@ export const getUserById = async (req, res) => {
  * @description Updates an existing user in the database by ID.
  * @param {Object} req - HTTP request object.
  * @param {Object} res - HTTP response object.
+ * @param {string} req.body.firstName - Updated firstName of the user.
+ * @param {string} req.body.lastName - Updated lastName of the user.
+ * @param {string} req.body.email - Updated email of the user.
+ * @param {string} req.body.password - Updated password of the user.
+ * @param {string} req.body.role - Updated role of the user.
+ * @param {string} req.body.profilePicture - Updated profilePicture of the user.
+ * @param {string} req.body.locations - Updated locations of the user.
+ * @param {string} req.body.profession - Updated profession of the user.
+ * @param {string} req.body.modificatedBy - ID of the user how modified the data.
  * @returns {string} message 
  * @example PATCH http://localhost:3001/users/6160171b1494489759d31572
  */
 export const updateUser = async (req, res) => {
   const { id } = req.params;
-  const { firstName, lastName, email, password, role, profilePicture, locations, profession, officePictures } = req.body;
+  const {modifydBy, firstName, lastName, email, password, role, profilePicture, locations, profession, officePictures } = req.body;
   try {
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: 'Invalid user ID' });
+      return res.status(400).json({ message: 'ID de usuario inválido' });
     }
 
-    const updatedUser = await User.findByIdAndUpdate(
+    const user = await User.findById(modifydBy);
+    if(!user){
+      return res.status(404).json({ message: 'Usuario modificador no encontrado' });
+    }
+
+    const updateUser = await User.findByIdAndUpdate(
       id,
-      { firstName, lastName, email, password, role, profilePicture, locations, profession, officePictures },
-      {  runValidators: true }
+      { firstName, lastName, email, password, role, profilePicture, locations, profession, officePictures, $push: { modificationHistory: {userId: modifydBy, modifiedDate: new Date() }}},
+      { new:true, runValidators: true }
     );
 
-    if (!updatedUser) {
-      return res.status(404).json({ message: 'User not found' });
+    if (!updateUser) {
+      return res.status(404).json({ message: 'Usuario a modificar no encontrado' });
     }
-    res.status(200).json({ message: 'User updated successfully' });
+
+    
+    
+    if (user) {
+      updateUser.modificationHistory.push({ userId: userID, modifiedDate: new Date() });
+      await user.save();
+    }
+    res.status(200).json({ message: 'Usuario actualizado con éxito' });
   } catch (error) {
     if (error.name === 'ValidationError') {
-      return res.status(400).json({ message: 'Validation error', errors: error.errors });
+      return res.status(400).json({ message: 'Error de validación', errors: error.errors });
     }
-    res.status(500).json({ message: 'Error updating user', error });
+    res.status(500).json({ message: 'Error al actualizar usuario', error });
   }
 };
 
@@ -237,12 +258,18 @@ export const deleteUser = async (req, res) => {
       return res.status(400).json({ message: 'ID de usuario eliminador inválido' }); // Mensaje en español
     }
 
+    const userId = await User.findById(deletedBy);
+
+    if(!userId){
+      return res.status(404).json({ message: 'Usuario eliminador no encontrado' });
+    }
+
     // Find the user by ID
     const user = await User.findById(id);
 
     // Handle case where user is not found
     if (!user) {
-      return res.status(404).json({ message: 'Usuario no encontrado' }); // Mensaje en español
+      return res.status(404).json({ message: 'Usuario no encontrado' }); 
     }
 
     // Check if already deleted to avoid redundant saves (optional but good practice)
@@ -252,7 +279,9 @@ export const deleteUser = async (req, res) => {
 
 
     // Update the deleted field for soft delete
-    user.deleted = { isDeleted: true, isDeletedBy: deletedBy, deletedAt: new Date() };
+    user.deleted = { isDeleted: true, isDeletedBy: deletedBy, deletedAt: new Date()};
+
+    user.modificationHistory.push({ userId: deletedBy, modifiedDate: new Date() });
 
     // Save the changes
     await user.save();

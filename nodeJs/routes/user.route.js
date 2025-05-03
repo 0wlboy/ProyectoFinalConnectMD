@@ -52,17 +52,17 @@ userRouter.get('/users/:id', UserController.getUserById);
  * @description Partially updates a user by their ID.
  * @returns {Object} The updated user.
  * @access Private
- * @example PATCH http://localhost:3001/users/6160171b1494489759d31572
+ * @example PATCH http://localhost:3001/users/update/6160171b1494489759d31572
  */
-userRouter.patch('/users/:id', UserController.updateUser);
+userRouter.patch('/users/update/:id', UserController.updateUser);
 
 /**
  * @route PATCH /users/:id
  * @description Logicaly deletes a user by their ID.
  * @returns {string} Success message.
  * @access Private
- * @example PATCH http://localhost:3001/users/6160171b1494489759d31572
+ * @example PATCH http://localhost:3001/users/delete/6160171b1494489759d31572
  */
-userRouter.patch('/users/:id', UserController.deleteUser);
+userRouter.patch('/users/delete/:id', UserController.deleteUser);
 
 export default userRouter;

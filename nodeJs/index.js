@@ -4,6 +4,10 @@ import "./database/connection.js" //import connection to database
 import userRouter from "./routes/user.route.js" //import routes users
 import contactRouter from "./routes/contact.route.js" //import routes contacts"
 import feedbackRouter from "./routes/feedback.route.js" //import routes feedback
+import appointmentRouter from "./routes/appointments.route.js" //import routes appointments
+import profileVisitRouter from "./routes/profileVisits.route.js" //import routes profileVisits
+import reviewRouter from "./routes/review.route.js" //import routes reviews
+
 
 
 const app = express(); // Create server with express
@@ -24,7 +28,7 @@ const corsOptions = {
 
 app.use(cors(corsOptions)); //using cors
 app.use(json());// Middleware for JSON
-app.use([userRouter, contactRouter, feedbackRouter]);//routes
+app.use([userRouter, contactRouter, feedbackRouter, appointmentRouter, profileVisitRouter, reviewRouter]);//routes
 
 //start server
 app.listen(port, () => {

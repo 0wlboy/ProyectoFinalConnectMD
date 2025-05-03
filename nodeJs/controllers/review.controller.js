@@ -218,6 +218,12 @@ export const deleteReview = async (req, res) => {
       return res.status(400).json({ message: 'ID de usuario eliminador inválido' }); // Mensaje en español
     }
 
+    const user = await User.findById(deletedBy)
+
+    if(!user){
+      return res.status(404).json({ message: 'Usuario eliminador no encontrado' });
+    }
+
     // Find the review by ID
     const review = await Review.findById(id);
 
@@ -235,22 +241,27 @@ export const deleteReview = async (req, res) => {
     // Update the deleted field for soft delete
     review.deleted = { isDeleted: true, isDeletedBy: deletedBy, deletedAt: new Date() };
 
+    review.modificationHistory.push({ userId: deletedBy, modifiedDate: new Date() });
+
     // Save the changes
     await review.save();
 
     // Send success response
-    res.status(200).json({ message: 'Review eliminado con éxito' }); // Mensaje
+    res.status(200).json({ message: 'Review eliminado con éxito' }); 
   } catch (error) {
     res.status(500).json({ message: 'Error al eliminar la review', error: error.message });
   }
 }
+
+
 
 const ReviewController ={
   createReview,
   updateReview,
   deleteReview,
   getAllReviewsByClientId,
-  getAllReviewsByProfId
+  getAllReviewsByProfId,
+  deleteReview
 }
 
 export default ReviewController;

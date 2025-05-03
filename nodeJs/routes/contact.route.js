@@ -49,17 +49,17 @@ contactRouter.get('/contacts/:id', ContactController.getContactById);
  * @description Partially updates a contact by their ID.
  * @returns {Object} The updated contact.
  * @access Private
- * @example PATCH http://localhost:3001/contacts/6160171b1494489759d31572
+ * @example PATCH http://localhost:3001/contacts/update/6160171b1494489759d31572
  */
-contactRouter.patch('/contacts/:id', ContactController.updateContact);
+contactRouter.patch('/contacts/update/:id', ContactController.updateContact);
 
 /**
  * @route PATCH /contacts/:id
  * @description Logicaly deletes a contact by their ID.
  * @returns {string} Success message.
  * @access Private
- * @example PATCH http://localhost:3001/contacts/6160171b1494489759d31572
+ * @example PATCH http://localhost:3001/contacts/delete/6160171b1494489759d31572
  */
-contactRouter.patch('/contacts/:id', ContactController.deleteContact);
+contactRouter.patch('/contacts/delete/:id', ContactController.deleteContact);
 
 export default contactRouter;

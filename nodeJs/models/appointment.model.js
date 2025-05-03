@@ -2,6 +2,31 @@ import mongoose, { Schema } from 'mongoose';
 import mongoosePaginate from 'mongoose-paginate-v2';
 import User from './user.model.js';
 
+
+
+/**
+ * @typedef {object} DeletedSchema
+ * @property {boolean} isDeleted  - Flag that indicate if the user is logicaly deleted
+ * @property {objectId} isDeletedBy - ID of the user how deleted the element
+ * @property {date} deletedAt - date of deletion
+ */
+const DeletedSchema = new Schema({
+  isDeleted: {
+    type: Boolean,
+    default: false,
+    index: true,
+  },
+  isDeletedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  },
+  deletedAt: {
+    type: Date,
+  },
+},{
+  _id: false
+})
+
 /**
  * @typedef {object} Modification - Represents a modification made to an appointment.
  * @property {mongoose.Schema.Types.ObjectId} userId - ID of the user who made the modification. References 'User'. Required.
@@ -27,6 +52,7 @@ const modifactionSchema = new Schema({
  * @property {string} office - Address of the office where the appointment will take place. Required.
  * @property {Date} appointmentDateTime - Complete date and time of the appointment. Required.
  * @property {object} [oldData] - Stores the previous version of the appointment data before an update.
+ * @property {DeletedSchema} deleted - schema that storage deletion information
  * @property {modificationSchema []} modificationHistory - An array storing the history of modifications.
  * @property {Date} createdAt - Date of document creation. Managed by Mongoose (timestamps).
  * @property {Date} updatedAt - Date of the last document update. Managed by Mongoose (timestamps).
@@ -64,6 +90,7 @@ const appointmentSchema = new Schema({
     oldData: {
         type: Object
     },
+    deleted: DeletedSchema,
     modificationHistory: [modifactionSchema],
 }, {
     timestamps: true, 

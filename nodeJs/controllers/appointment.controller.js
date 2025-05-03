@@ -42,29 +42,29 @@ export const getAllAppointments = async (req, res) => {
     }
 };
 
-// Controller function to get profile visits by host ID
+// Controller function to get appointments by client ID
 /**
  * @async
- * @function getProfileVisitsByHostId
- * @description Retrieves profile visits for a specific host from the database. Supports pagination, sorting, and filtering.
+ * @function getAllAppointmentsByClientId
+ * @description Retrieves appointments for a specific client from the database. Supports pagination, sorting, and filtering.
  * @param {Object} req - HTTP request object.
  * @param {Object} res - HTTP response object.
- * @param {string} req.params.hostId - The ID of the host.
+ * @param {string} req.params.clienteId - The ID of the client.
  * @param {number} [req.query.page=1] - Page number for pagination.
  * @param {number} [req.query.limit=10] - Maximum number of items per page.
  */
-export const getProfileVisitsByHostId = async (req, res) => {
-  const { hostId } = req.params;
+export const getAllAppointmentsByClientId = async (req, res) => {
+  const { clientId } = req.params;
   const { page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
 
     try {
-      if (!mongoose.Types.ObjectId.isValid(hostId)) {
-        return res.status(400).json({ message: 'ID de anfitrion invalido' });
+      if (!mongoose.Types.ObjectId.isValid(clientId)) {
+        return res.status(400).json({ message: 'ID del cliente invalido' });
       }
 
-      const hostExists = await User.findById(hostId).select('_id').lean();
-      if (!hostExists) {
-          return res.status(404).json({ message: 'Anfitrion no encontrado' });
+      const clientExists = await User.findById(clientId).select('_id').lean();
+      if (!clientExists) {
+          return res.status(404).json({ message: 'Cliente no encontrado' });
       }
 
       const options = {
@@ -74,47 +74,47 @@ export const getProfileVisitsByHostId = async (req, res) => {
         lean: true,
       };
 
-      const query = { hostId: hostId };
-      const result = await ProfileVisit.paginate(query, options);
-      const profileVisits = result.docs;
-      const totalProfileVisits = result.total;
+      const query = { clientId: clientId };
+      const result = await Appointment.paginate(query, options);
+      const appointment = result.docs;
+      const totalAppointment = result.totalDocs;
 
       res.status(200).json({
-        profileVisits,
+        appointment,
         page,
         limit,
-        total: totalProfileVisits,
+        total: totalAppointment,
         totalPages: result.totalPages,
       });
     } catch (error) {
         res.status(500).json({ message: error.message });
-        console.error(`Error al obtener las visitas de perfil por el ID de anfitrion ${hostId}:`, error);
+        console.error(`Error al obtener las citas por el ID del cliente ${clientId}:`, error);
     }
 };
 
-// Controller function to get profile visits by visitor ID
+// Controller function to get appointments by profesional ID
 /**
  * @async
- * @function getProfileVisitsByVisitorId
- * @description Retrieves profile visits for a specific visitor from the database. Supports pagination, sorting, and filtering.
+ * @function getAllAppointmentsByProftId
+ * @description Retrieves appointments for a specific profesional from the database. Supports pagination, sorting, and filtering.
  * @param {Object} req - HTTP request object.
  * @param {Object} res - HTTP response object.
- * @param {string} req.params.visitorId - The ID of the visitor.
+ * @param {string} req.params.profId - The ID of the profesional.
  * @param {number} [req.query.page=1] - Page number for pagination.
  * @param {number} [req.query.limit=10] - Maximum number of items per page.
  */
-export const getProfileVisitsByVisitorId = async (req, res) => {
-  const { visitorId } = req.params;
+export const getAllAppointmentsByProfId = async (req, res) => {
+  const { profId } = req.params;
   const { page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
 
     try {
-      if (!mongoose.Types.ObjectId.isValid(visitorId)) {
-        return res.status(400).json({ message: 'ID de visitante invalida' });
+      if (!mongoose.Types.ObjectId.isValid(profId)) {
+        return res.status(400).json({ message: 'ID del profesional invalido' });
       }
 
-      const visitorExists = await User.findById(visitorId).select('_id').lean();
-      if (!visitorExists) {
-          return res.status(404).json({ message: 'Visitante no encontrado' });
+      const profExists = await User.findById(profId).select('_id').lean();
+      if (!profExists) {
+          return res.status(404).json({ message: 'Profesional no encontrado' });
       }
 
       const options = {
@@ -124,80 +124,188 @@ export const getProfileVisitsByVisitorId = async (req, res) => {
         lean: true,
       };
 
-      const query = { visitorId: visitorId };
-      const result = await ProfileVisit.paginate(query, options);
-      const profileVisits = result.docs;
-      const totalProfileVisits = result.total;
+      const query = { profId: profId };
+      const result = await Appointment.paginate(query, options);
+      const appointment = result.docs;
+      const totalAppointment = result.totalDocs;
 
       res.status(200).json({
-        profileVisits,
+        appointment,
         page,
         limit,
-        total: totalProfileVisits,
+        total: totalAppointment,
         totalPages: result.totalPages,
       });
     } catch (error) {
         res.status(500).json({ message: error.message });
-        console.error(`Error al obtener las visitas de perfil por el ID de visitante ${visitorId}:`, error);
+        console.error(`Error al obtener las citas por el ID del profesional ${profId}:`, error);
     }
 };
 
-// Controller function to create a profile visit
+// Controller function to create a appointment
 /**
  * @async
- * @function createProfileVisit
- * @description Creates a new profile visit record in the database.
+ * @function createAppointment
+ * @description Creates a new appointment record in the database.
  * @param {Object} req - HTTP request object.
- * @param {Object} res - HTTP response object.
- * @param {string} req.body.visitorId - The ID of the user visiting the profile.
- * @param {string} req.body.hostId - The ID of the user whose profile is being visited.
- * @returns {string} message
+ * @param {Object} res - HTTP response object. 
+ * @param {string} req.body.clientId - The ID of the client requesting the appointment.
+ * @param {string} req.body.profId - The ID of the professional with whom the appointment is scheduled.
+ * @param {string} req.body.status - The status of the appointment.
+ * @param {string} req.body.office - The office where the appointment will take place.
+ * @param {Date} req.body.appointmentDateTime - The date and time of the appointment.
+ * @returns {string} message - A success or error message.
  */
-export const createProfileVisit = async (req, res) => {
-  const { visitorId, hostId } = req.body;
+export const createAppointment = async (req, res) => {
+  const { clientId, profId, status, office, appointmentDateTime } = req.body; 
     try {
 
-      if (!mongoose.Types.ObjectId.isValid(visitorId)) {
-            return res.status(400).json({ message: 'ID de visitante invalida' }); // 400 Bad Request
+      if (!mongoose.Types.ObjectId.isValid(clientId)) {
+            return res.status(400).json({ message: 'ID del cliente invalida' }); // 400 Bad Request
       }
 
-      if (!mongoose.Types.ObjectId.isValid(hostId)) {
-        return res.status(400).json({ message: 'ID de anfitrion invalida' }); // 400 Bad Request
+      if (!mongoose.Types.ObjectId.isValid(profId)) {
+        return res.status(400).json({ message: 'ID del profesional invalida' }); // 400 Bad Request
       }
 
-      if (visitorId === hostId) {
-        return res.status(400).json({ message: 'El visitante y el anfitrion no pueden ser iguales' });
+      if (clientId === profId) {
+        return res.status(400).json({ message: 'El cliente y el profesional no pueden ser iguales' });
       }
 
-      const visitorExists = await User.findById(visitorId).select('_id').lean();
-      if (!visitorExists) {
-          return res.status(404).json({ message: 'Visitante no encontrado' });
+      const clientExists = await User.findById(clientId).select('_id').lean();
+      if (!clientExists) {
+          return res.status(404).json({ message: 'Cliente no encontrado' });
       }
 
-      const hostExists = await User.findById(hostId).select('_id').lean();
-      if (!hostExists) {
-          return res.status(404).json({ message: 'Anfitrion no encontrado' });
+      const profExists = await User.findById(profId).select('_id').lean();
+      if (!profExists) {
+          return res.status(404).json({ message: 'Profesional no encontrado' });
       }
 
-      const visit = new ProfileVisit({ visitorId, hostId });
-      await visit.save();
+      const appointment = new Appointment({clientId, profId, status, office, appointmentDateTime});
+      await appointment.save();
 
-      res.status(201).json({ message: 'Visita creada con exito' }); // 201 Created
+      res.status(201).json({ message: 'Cita creada con exito' }); // 201 Created
     } catch (error) {
       // Handle specific Mongoose errors
       if (error.name === 'ValidationError') {
         return res.status(400).json({ message: 'Error de validacion', errors: error.errors }); // 400 Bad Request
       }
       res.status(500).json({ message: 'Error de servidor interno', error }); // 500 Internal Server Error
-      console.error("Error al crear visita:", error);
+      console.error("Error al crear cita:", error);
     }
 }
 
-const VisitController = {
-    getAllProfileVisits,
-    getProfileVisitsByHostId,
-    getProfileVisitsByVisitorId,
-    createProfileVisit,
+/**
+ * @async
+ * @function updateAppointment
+ * @description Updates an existing appointment in the database.
+ * @param {Object} req - HTTP request object.
+ * @param {Object} res - HTTP response object.
+ * @param {string} req.params.id - The ID of the appointment to update.
+ * @param {string} [req.body.status] - The new status of the appointment.
+ * @param {string} [req.body.office] - The new office for the appointment.
+ * @param {Date} [req.body.appointmentDateTime] - The new date and time for the appointment.
+ * @returns {string} message - A success or error message.
+ */
+export const updateAppointment = async (req, res) => {
+  const { id } = req.params;
+  const {modifydBy, status, office, appointmentDateTime } = req.body;
+
+  try{
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+          return res.status(400).json({ message: 'Id de cita invalido' });
+        }
+
+     const user = await User.findById(modifydBy);
+        if(!user){
+          return res.status(404).json({ message: 'Usuario modificador no encontrado' });
+        }
+
+   const updateAppointment = await Appointment.findByIdAndUpdate(
+    id, 
+    {status, office, appointmentDateTime, $push:{modificationHistory: {userId: modifydBy, modifiedDate: new Date()}}},
+    { runValidators: true}
+   );
+   
+   if(!updateAppointment){
+    return res.status(404).json({ message: 'Cita no encontrada' });
+   }
+   res.status(200).json({ message: 'Cita actualizada con exito' });
+   }catch(error){
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ message: 'Error de validación', errors: error.errors });
+    }
+    res.status(500).json({ message: 'Error al actualizar cita', error });
+   }
+  }
+
+  
+// Controller function to delete a appointment
+/**
+ * @async
+ * @function deleteAppointment
+ * @description Logically deletes a appointment by setting the 'deleted' flag.
+ * @param {Object} req - HTTP request object.
+ * @param {Object} res - HTTP response object.
+ * @param {string} req.params.id - The ID of the appointment to delete.
+ * @param {string} req.body.deletedBy - The ID of the user performing the deletion. 
+ * @returns {string} message
+ */
+export const deleteAppointment = async (req, res) => {
+  const { id } = req.params;
+  const { deletedBy } = req.body; 
+
+  try {
+    // Validate the ID of the appointment to be deleted
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'ID de cita inválido' }); 
+    }
+    // Validate the ID of the user performing the deletion
+    if (!mongoose.Types.ObjectId.isValid(deletedBy)) {
+      return res.status(400).json({ message: 'ID de usuario eliminador inválido' });
+    }
+
+    const userId = await User.findById(deletedBy);
+    
+    if(!userId){
+      return res.status(404).json({ message: 'Usuario eliminador no encontrado' });
+    }
+    
+    // Find the appointment by ID
+    const appointment = await Appointment.findById(id);
+
+    // Handle case where appointment is not found
+    if (!appointment) {
+      return res.status(404).json({ message: 'Cita no encontrada' });
+    }
+
+    // Check if already deleted to avoid redundant saves (optional but good practice)
+    if (appointment.deleted?.isDeleted) {
+         return res.status(200).json({ message: 'La cita ya ha sido eliminada previamente' });
+    }
+
+    appointment.deleted = { isDeleted: true, isDeletedBy: deletedBy, deletedAt: new Date() }; 
+
+    appointment.modificationHistory.push({ userId: deletedBy, modifiedDate: new Date() });
+
+    await appointment.save();
+
+    // Send success response
+    res.status(200).json({ message: 'Cita eliminada con éxito' });
+
+    } catch (error) {
+      res.status(500).json({ message: 'Error al eliminar la cita', error });
+    }
+    }
+
+const AppointmentController = {
+    getAllAppointments,
+    getAllAppointmentsByClientId,
+    getAllAppointmentsByProfId,
+    createAppointment,
+    updateAppointment,
+    deleteAppointment
 };
 
-export default VisitController;
+export default AppointmentController;

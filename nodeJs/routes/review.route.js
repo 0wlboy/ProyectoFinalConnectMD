@@ -44,18 +44,18 @@ reviewRouter.get('/reviews/profId/:id', ReviewController.getAllReviewsByProfId);
  * @description Updates a review by its ID.
  * @access Public
  * @returns {string} Success message.
- * @example PATCH http://localhost:3001/reviews/6160171b1494489759d31572
+ * @example PATCH http://localhost:3001/reviews/update/6160171b1494489759d31572
  */
-reviewRouter.patch('/reviews/:id', ReviewController.updateReview);
+reviewRouter.patch('/reviews/update/:id', ReviewController.updateReview);
 
 /**
  * @route PATCH /reviews/:id
  * @description Lodically deletes a review by its ID.
  * @access Public
  * @returns {string} Success message.
- * @example PATCH http://localhost:3001/reviews/6160171b1494489759d31572
+ * @example PATCH http://localhost:3001/reviews/delete/6160171b1494489759d31572
  */
-reviewRouter.patch('/reviews/:id', ReviewController.deleteReview);
+reviewRouter.patch('/reviews/delete/:id', ReviewController.deleteReview);
 
 const visitRouter = reviewRouter;
 
