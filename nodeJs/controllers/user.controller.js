@@ -82,7 +82,8 @@ export const getAllUsers = async (req, res) => {
   try {
     const result = await User.paginate(query, options);
     const users = result.docs;
-    const totalUsers = result.total;
+    const totalUsers = result.totalDocs;
+    console.log('getAllUsers se ejecuta')
 
     res.status(200).json({
       users,
@@ -192,12 +193,13 @@ export const getUserById = async (req, res) => {
  * @param {string} req.body.locations - Updated locations of the user.
  * @param {string} req.body.profession - Updated profession of the user.
  * @param {string} req.body.modificatedBy - ID of the user how modified the data.
+ * @param {string} req.body.strikes - user strikes
  * @returns {string} message 
  * @example PATCH http://localhost:3001/users/6160171b1494489759d31572
  */
 export const updateUser = async (req, res) => {
   const { id } = req.params;
-  const {modifydBy, firstName, lastName, email, password, role, profilePicture, locations, profession, officePictures } = req.body;
+  const {modifydBy, firstName, lastName, email, password, role, profilePicture, locations, profession, officePictures, strikes } = req.body;
   try {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: 'ID de usuario inválido' });
@@ -210,7 +212,7 @@ export const updateUser = async (req, res) => {
 
     const updateUser = await User.findByIdAndUpdate(
       id,
-      { firstName, lastName, email, password, role, profilePicture, locations, profession, officePictures, $push: { modificationHistory: {userId: modifydBy, modifiedDate: new Date() }}},
+      { firstName, lastName, email, password, role, profilePicture, locations, profession, officePictures,strikes ,$push: { modificationHistory: {userId: modifydBy, modifiedDate: new Date() }}},
       { new:true, runValidators: true }
     );
 

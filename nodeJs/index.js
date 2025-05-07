@@ -1,5 +1,6 @@
 import express, { json } from 'express'; //import express
 import cors from "cors"; //import cors
+import './scheduler.js'
 import "./database/connection.js" //import connection to database
 import userRouter from "./routes/user.route.js" //import routes users
 import contactRouter from "./routes/contact.route.js" //import routes contacts"

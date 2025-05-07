@@ -166,7 +166,7 @@ const UserSchema = new Schema({
   },
   strikes: {
     type: Number,
-    default: 0,
+    default: 3,
   },
   isSuspended: {
     type: Boolean,

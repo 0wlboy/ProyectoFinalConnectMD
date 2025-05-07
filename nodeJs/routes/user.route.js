@@ -1,6 +1,6 @@
 import express from 'express';
 import UserController from '../controllers/user.controller.js'; 
-import { isAuthenticated } from '../middleware/auth.middleware.js'; // Asegúrate que la ruta es correcta
+//import { isAuthenticated } from '../middleware/auth.middleware.js'; // Asegúrate que la ruta es correcta
 
 
 
@@ -36,7 +36,7 @@ userRouter.get('/users', UserController.getAllUsers);
  * @returns {Array} List of deleted users.
  * @example GET http://localhost:3001/users/deleted
  */
-userRouter.get('/users/deleted',isAuthenticated, UserController.getAllDeletedUsers);
+userRouter.get('/users/deleted', UserController.getAllDeletedUsers);
 
 /**
  * @route GET /users/:id
