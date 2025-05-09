@@ -1,6 +1,6 @@
 import express from 'express';
 import FeedbackController from '../controllers/feedback.controller.js'; 
-import { isAuthenticated } from '../middleware/aunth.middleware.js';
+//import { isAuthenticated } from '../middleware/aunth.middleware.js';
 
 const feedbackRouter = express.Router();
 
@@ -34,7 +34,7 @@ feedbackRouter.get('/feedback', FeedbackController.getAllFeedback);
  * @returns {Array} List of deleted feedback entries.
  * @example GET http://localhost:3001/feedback/deleted
  */
-feedbackRouter.get('/feedback/deleted',isAuthenticated, FeedbackController.getAllDeletedFeedback);
+feedbackRouter.get('/feedback/deleted', FeedbackController.getAllDeletedFeedback);
 
 /**
  * @route GET /feedback/:id

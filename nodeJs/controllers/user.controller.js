@@ -1,5 +1,6 @@
 import User from '../models/user.model.js';
 import mongoose from 'mongoose';
+import jwt from 'jsonwebtoken'; // Import jsonwebtoken
 
 /**
  * @module UserController
@@ -22,7 +23,7 @@ import mongoose from 'mongoose';
  * @param {string} req.body.profession - profession
  * @param {string} req.body.officePictures - officePictures
  * @returns {string} message 
- * @example POST http://localhost:3001/users
+ * @example POST http://localhost:3001/users/register
  */
 export const createUser = async (req, res) => {
   const { firstName, lastName, email, password, role, profilePicture, locations, profession, officePictures } = req.body;
@@ -210,23 +211,35 @@ export const updateUser = async (req, res) => {
       return res.status(404).json({ message: 'Usuario modificador no encontrado' });
     }
 
-    const updateUser = await User.findByIdAndUpdate(
-      id,
-      { firstName, lastName, email, password, role, profilePicture, locations, profession, officePictures,strikes ,$push: { modificationHistory: {userId: modifydBy, modifiedDate: new Date() }}},
-      { new:true, runValidators: true }
-    );
-
-    if (!updateUser) {
+    const userToUpdate = await User.findById(id);
+    if (!userToUpdate) {
       return res.status(404).json({ message: 'Usuario a modificar no encontrado' });
     }
 
     
     
-    if (user) {
-      updateUser.modificationHistory.push({ userId: userID, modifiedDate: new Date() });
-      await user.save();
-    }
-    res.status(200).json({ message: 'Usuario actualizado con éxito' });
+   // Actualizar campos si se proporcionan
+   if (firstName !== undefined) userToUpdate.firstName = firstName;
+   if (lastName !== undefined) userToUpdate.lastName = lastName;
+   if (email !== undefined) userToUpdate.email = email.toLowerCase(); // Normalizar email
+   if (password) {
+     // Si se proporciona una nueva contraseña, mongoose-bcrypt la hasheará automáticamente
+     // al llamar a userToUpdate.save() gracias al hook pre('save') en el modelo.
+     userToUpdate.password = password;
+   }
+   if (role !== undefined) userToUpdate.role = role;
+   if (profilePicture !== undefined) userToUpdate.profilePicture = profilePicture;
+   if (locations !== undefined) userToUpdate.locations = locations;
+   if (profession !== undefined) userToUpdate.profession = profession;
+   if (officePictures !== undefined) userToUpdate.officePictures = officePictures;
+   if (strikes !== undefined) userToUpdate.strikes = strikes;
+
+   userToUpdate.modificationHistory.push({ userId: modifiedBy, modifiedDate: new Date() });
+
+   await userToUpdate.save(); // Esto disparará los hooks pre('save'), incluyendo el de mongoose-bcrypt
+
+   res.status(200).json({ message: 'Usuario actualizado con éxito', user: userToUpdate }); // Opcional: devolver el usuario actualizado
+
   } catch (error) {
     if (error.name === 'ValidationError') {
       return res.status(400).json({ message: 'Error de validación', errors: error.errors });
@@ -296,6 +309,63 @@ export const deleteUser = async (req, res) => {
   }
 };
 
+/**
+ * @async
+ * @function loginUser
+ * @description Authenticates a user and returns a JWT.
+ * @param {Object} req - HTTP request object.
+ * @param {string} req.body.email - User's email.
+ * @param {string} req.body.password - User's password.
+ * @param {Object} res - HTTP response object.
+ * @returns {Object} JSON response with token and user info or error message.
+ * @example POST http://localhost:3001/users/login
+ */
+export const loginUser = async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    const user = await User.findOne({ email: email.toLowerCase()});
+    if (!user) {
+      return res.status(401).json({ message: 'Credenciales inválidas: Usuario no encontrado.' });
+    }
+
+    // Use the verifyPassword method provided by mongoose-bcrypt
+    const isMatch = await user.verifyPassword(password);
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Credenciales inválidas: Contraseña incorrecta.' });
+    }
+
+    // Update login history and last login
+    user.lastLogin = new Date();
+    const ip = req.ip || req.connection?.remoteAddress || req.socket?.remoteAddress;
+    const device = req.headers['user-agent'];
+
+    user.historicalLogins.unshift({
+      loginDate: user.lastLogin,
+      device: device || 'Dispositivo desconocido',
+      ip: ip || 'IP desconocida'
+    });
+    // The pre-save middleware in user.model.js will handle totalLoginCount and historicalLogins capping
+
+    await user.save();
+
+    // Generate JWT
+    // Replace 'YOUR_SECRET_KEY' with your actual secret key, preferably from environment variables
+    const secretKey = process.env.ACCESS_TOKEN_SECRET;
+    
+    if (!secretKey) {
+      console.error("Error: ACCESS_TOKEN_SECRET no está definido en las variables de entorno.");
+      return res.status(500).json({ message: 'Error de configuración del servidor al generar token.' });
+      }
+    const token = jwt.sign({ id: user._id, role: user.role }, secretKey, {
+      expiresIn: '1h' // Token expiration time
+    });
+ 
+    res.status(200).json({ message: 'Bienvenido', token, userId: user._id, role: user.role });
+  } catch (error) {
+    res.status(500).json({ message: 'Error al ingresar el usuario', error: error.message });
+  }
+};
 
 const UserController = {
   createUser,
@@ -303,7 +373,8 @@ const UserController = {
   getAllDeletedUsers,
   getUserById,
   updateUser,
-  deleteUser
+  deleteUser,
+  loginUser
 };
 
 export default UserController;

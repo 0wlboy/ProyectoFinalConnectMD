@@ -12,13 +12,13 @@ const userRouter = express.Router();
  */
 
 /**
- * @route POST /users
- * @description Creates a new user.
+ * @route POST /users/register
+ * @description Register a new user.
  * @access Public
- * @returns {Object} The created user.
- * @example POST http://localhost:3001/users
+ * @returns {Object} The register user.
+ * @example POST http://localhost:3001/users/register
  */
-userRouter.post("/users", UserController.createUser);
+userRouter.post("/users/register", UserController.createUser);
 
 /**
  * @route GET /users
@@ -64,5 +64,17 @@ userRouter.patch('/users/update/:id', UserController.updateUser);
  * @example PATCH http://localhost:3001/users/delete/6160171b1494489759d31572
  */
 userRouter.patch('/users/delete/:id', UserController.deleteUser);
+
+
+
+/**
+ * @route POST /users/login
+ * @description Authenticates a user and returns a JWT.
+ * @param {string} req.body.email - User's email.
+ * @param {string} req.body.password - User's password.
+ * @returns {Object} JSON response with token and user info or error message.
+ * @example POST http://localhost:3001/users/login
+ */
+userRouter.post('/users/login',UserController.loginUser);
 
 export default userRouter;
