@@ -6,7 +6,7 @@ import mongoosePaginate from "mongoose-paginate-v2"; //importar modulo paginacio
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const nameRegex =  /^[a-zA-ZáéíóúüñÑ\s'`-]+$/;
 // Minimum 8 characters, at least one lowercase, one uppercase, one number, and one special character: @$!%*?&
-const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#_()'¡¿])[A-Za-z\d@$!%*?&]{8,}$/;
 
 
 /**
@@ -129,7 +129,7 @@ const UserSchema = new Schema({
     type: String,
     bcrypt: true, // Handled by mongoose-bcrypt plugin
     required: [true, 'La contraseña es requerida.'],
-    match: [passwordRegex, 'La contraseña debe tener al menos 8 caracteres e incluir mayúsculas, minúsculas, números y un carácter especial (@$!%*?&).'],
+    //match: [passwordRegex, 'La contraseña debe tener al menos 8 caracteres e incluir mayúsculas, minúsculas, números y un carácter especial (@$!%*?&).'],
   },
   role: {
     type: String,

@@ -1,6 +1,7 @@
 import User from '../models/user.model.js';
 import mongoose from 'mongoose';
-import jwt from 'jsonwebtoken'; // Import jsonwebtoken
+import {generatedAccessToken, refressToken} from '../middleware/aunth.middleware.js'
+
 
 /**
  * @module UserController
@@ -335,6 +336,18 @@ export const loginUser = async (req, res) => {
       return res.status(401).json({ message: 'Credenciales inválidas: Contraseña incorrecta.' });
     }
 
+    if (!user) {
+      return res.status(401).json({ message: 'Credenciales inválidas: Usuario no encontrado.' });
+    }
+
+    if (user.isSuspended) {
+      return res.status(403).json({ message: 'Acceso denegado: Tu cuenta está suspendida.' });
+    }
+
+    if (user.deleted?.isDeleted) {
+      return res.status(401).json({ message: 'Credenciales inválidas: Usuario no encontrado.' }); // O un mensaje más específico
+    }
+
     // Update login history and last login
     user.lastLogin = new Date();
     const ip = req.ip || req.connection?.remoteAddress || req.socket?.remoteAddress;
@@ -349,19 +362,10 @@ export const loginUser = async (req, res) => {
 
     await user.save();
 
-    // Generate JWT
-    // Replace 'YOUR_SECRET_KEY' with your actual secret key, preferably from environment variables
-    const secretKey = process.env.ACCESS_TOKEN_SECRET;
-    
-    if (!secretKey) {
-      console.error("Error: ACCESS_TOKEN_SECRET no está definido en las variables de entorno.");
-      return res.status(500).json({ message: 'Error de configuración del servidor al generar token.' });
-      }
-    const token = jwt.sign({ id: user._id, role: user.role }, secretKey, {
-      expiresIn: '1h' // Token expiration time
-    });
+    const accessToken = generatedAccessToken(user)
+    const refress = refressToken(user)
  
-    res.status(200).json({ message: 'Bienvenido', token, userId: user._id, role: user.role });
+    res.status(200).json({ message: 'Bienvenido', accessToken: accessToken, refressToken: refress ,userId:user._id, role:user.role });
   } catch (error) {
     res.status(500).json({ message: 'Error al ingresar el usuario', error: error.message });
   }

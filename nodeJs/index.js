@@ -8,6 +8,10 @@ import feedbackRouter from "./routes/feedback.route.js" //import routes feedback
 import appointmentRouter from "./routes/appointments.route.js" //import routes appointments
 import profileVisitRouter from "./routes/profileVisits.route.js" //import routes profileVisits
 import reviewRouter from "./routes/review.route.js" //import routes reviews
+import dotenv from 'dotenv';
+
+
+dotenv.config();
 
 
 
