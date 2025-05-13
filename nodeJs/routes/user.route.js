@@ -1,8 +1,17 @@
-import express from 'express';
-import UserController from '../controllers/user.controller.js'; 
-import { aunthenticateToken, authorizeRoles } from '../middleware/aunth.middleware.js'; // Asegúrate que la ruta es correcta
-
-
+import express from "express";
+import {
+  createUser,
+  getAllUsers,
+  getAllDeletedUsers,
+  getUserById,
+  updateUser,
+  deleteUser,
+  loginUser,
+} from "../controllers/user.controller.js";
+import {
+  isAuth,
+  isAdmin
+} from "../middleware/auth.middleware.js"; // Asegúrate que la ruta es correcta
 
 const userRouter = express.Router();
 
@@ -18,7 +27,7 @@ const userRouter = express.Router();
  * @returns {Object} The register user.
  * @example POST http://localhost:3001/users/register
  */
-userRouter.post("/users/register", UserController.createUser);
+userRouter.post("/users/register", createUser);
 
 /**
  * @route GET /users
@@ -27,7 +36,7 @@ userRouter.post("/users/register", UserController.createUser);
  * @returns {Array} List of not deleted users.
  * @example GET http://localhost:3001/users
  */
-userRouter.get('/users', UserController.getAllUsers);
+userRouter.get("/users", getAllUsers);
 
 /**
  * @route GET /users/deleted
@@ -36,7 +45,12 @@ userRouter.get('/users', UserController.getAllUsers);
  * @returns {Array} List of deleted users.
  * @example GET http://localhost:3001/users/deleted
  */
-userRouter.get('/users/deleted', aunthenticateToken, authorizeRoles('admin'),UserController.getAllDeletedUsers);
+userRouter.get(
+  "/users/deleted",
+  isAuth,
+  isAdmin,
+  getAllDeletedUsers
+);
 
 /**
  * @route GET /users/:id
@@ -45,7 +59,7 @@ userRouter.get('/users/deleted', aunthenticateToken, authorizeRoles('admin'),Use
  * @access Public
  * @example GET http://localhost:3001/users/6160171b1494489759d31572
  */
-userRouter.get('/users/:id', UserController.getUserById);
+userRouter.get("/users/:id", getUserById);
 
 /**
  * @route PATCH /users/:id
@@ -54,7 +68,7 @@ userRouter.get('/users/:id', UserController.getUserById);
  * @access Private
  * @example PATCH http://localhost:3001/users/update/6160171b1494489759d31572
  */
-userRouter.patch('/users/update/:id', UserController.updateUser);
+userRouter.patch("/users/update/:id", updateUser);
 
 /**
  * @route PATCH /users/:id
@@ -63,9 +77,7 @@ userRouter.patch('/users/update/:id', UserController.updateUser);
  * @access Private
  * @example PATCH http://localhost:3001/users/delete/6160171b1494489759d31572
  */
-userRouter.patch('/users/delete/:id', UserController.deleteUser);
-
-
+userRouter.patch("/users/delete/:id", deleteUser);
 
 /**
  * @route POST /users/login
@@ -75,6 +87,6 @@ userRouter.patch('/users/delete/:id', UserController.deleteUser);
  * @returns {Object} JSON response with token and user info or error message.
  * @example POST http://localhost:3001/users/login
  */
-userRouter.post('/users/login',UserController.loginUser);
+userRouter.post("/users/login", loginUser);
 
 export default userRouter;

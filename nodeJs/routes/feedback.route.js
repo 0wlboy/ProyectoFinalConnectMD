@@ -1,5 +1,12 @@
-import express from 'express';
-import FeedbackController from '../controllers/feedback.controller.js'; 
+import express from "express";
+import {
+  createFeedback,
+  getAllFeedback,
+  getAllDeletedFeedback,
+  getFeedbackById,
+  deleteFeedback,
+  updateFeedback,
+} from "../controllers/feedback.controller.js";
 //import { isAuthenticated } from '../middleware/aunth.middleware.js';
 
 const feedbackRouter = express.Router();
@@ -16,7 +23,7 @@ const feedbackRouter = express.Router();
  * @returns {Object} The created feedback.
  * @example POST http://localhost:3001/feedback
  */
-feedbackRouter.post('/feedback', FeedbackController.createFeedback);
+feedbackRouter.post("/feedback", createFeedback);
 
 /**
  * @route GET /feedback
@@ -25,7 +32,7 @@ feedbackRouter.post('/feedback', FeedbackController.createFeedback);
  * @returns {Array} List of not deleted feedback entries.
  * @example GET http://localhost:3001/feedback
  */
-feedbackRouter.get('/feedback', FeedbackController.getAllFeedback);
+feedbackRouter.get("/feedback", getAllFeedback);
 
 /**
  * @route GET /feedback/deleted
@@ -34,7 +41,7 @@ feedbackRouter.get('/feedback', FeedbackController.getAllFeedback);
  * @returns {Array} List of deleted feedback entries.
  * @example GET http://localhost:3001/feedback/deleted
  */
-feedbackRouter.get('/feedback/deleted', FeedbackController.getAllDeletedFeedback);
+feedbackRouter.get("/feedback/deleted", getAllDeletedFeedback);
 
 /**
  * @route GET /feedback/:id
@@ -43,7 +50,7 @@ feedbackRouter.get('/feedback/deleted', FeedbackController.getAllDeletedFeedback
  * @access Public
  * @example GET http://localhost:3001/feedback/6160171b1494489759d31572
  */
-feedbackRouter.get('/feedback/:id', FeedbackController.getFeedbackById);
+feedbackRouter.get("/feedback/:id", getFeedbackById);
 
 /**
  * @route PATCH /feedback/:id
@@ -52,7 +59,7 @@ feedbackRouter.get('/feedback/:id', FeedbackController.getFeedbackById);
  * @access Private
  * @example PATCH http://localhost:3001/feedback/update/6160171b1494489759d31572
  */
-feedbackRouter.patch('/feedback/update/:id', FeedbackController.updateFeedback);
+feedbackRouter.patch("/feedback/update/:id", updateFeedback);
 
 /**
  * @route PATCH /feedback/:id
@@ -61,6 +68,6 @@ feedbackRouter.patch('/feedback/update/:id', FeedbackController.updateFeedback);
  * @access Private
  * @example PATCH http://localhost:3001/feedback/delete/6160171b1494489759d31572
  */
-feedbackRouter.patch('/feedback/delete/:id', FeedbackController.deleteFeedback);
+feedbackRouter.patch("/feedback/delete/:id", deleteFeedback);
 
 export default feedbackRouter;

@@ -238,13 +238,3 @@ export const deleteFeedback = async (req, res) => {
   }
 };
 
-const FeedbackController = {
-  createFeedback,
-  getAllFeedback,
-  getAllDeletedFeedback,
-  getFeedbackById,
-  updateFeedback,
-  deleteFeedback,
-};
-
-export default FeedbackController;
