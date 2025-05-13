@@ -10,7 +10,7 @@ import {
 } from "../controllers/user.controller.js";
 import {
   isAuth,
-  isAdmin
+  authRole
 } from "../middleware/auth.middleware.js"; // Asegúrate que la ruta es correcta
 
 const userRouter = express.Router();
@@ -48,7 +48,7 @@ userRouter.get("/users", getAllUsers);
 userRouter.get(
   "/users/deleted",
   isAuth,
-  isAdmin,
+  authRole('admin'),
   getAllDeletedUsers
 );
 

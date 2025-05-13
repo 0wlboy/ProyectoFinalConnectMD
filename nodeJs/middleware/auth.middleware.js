@@ -55,13 +55,14 @@ export const isAuth = (req, res, next) => {
 /**
  * Middleware to check if the user is an admin.
  *
+ * @param {string} role - The role needed
  * @param {Object} req - The request object.
  * @param {string} req.headers.authorization - The user's authorization token.
  * @param {Object} res - The response object.
  * @param {Function} next - The next middleware function.
  * @returns {void}
  */
-export const isAdmin = (req, res, next) => {
+export const authRole = (role) => (req, res, next) => {
   const authorization = req.headers.authorization;
   if (authorization) {
     const token = authorization.slice(7, authorization.length);
@@ -70,52 +71,10 @@ export const isAdmin = (req, res, next) => {
         res.status(401).send({ message: "Invalid Token" });
       } else {
         req.user = decode;
-        if (decode.role === "admin") {
+        if (decode.role === role) {
           next();
         } else {
-          res.status(401).send({ message: "Invalid User, this is not admin" });
-        }
-      }
-    });
-  } else {
-    res.status(401).send({ message: "No Token" });
-  }
-};
-
-export const isProf = (req, res, next) => {
-  const authorization = req.headers.authorization;
-  if (authorization) {
-    const token = authorization.slice(7, authorization.length);
-    jswebtoken.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decode) => {
-      if (err) {
-        res.status(401).send({ message: "Invalid Token" });
-      } else {
-        req.user = decode;
-        if (decode.role === "prof") {
-          next();
-        } else {
-          res.status(401).send({ message: "Invalid User, this is not profesional" });
-        }
-      }
-    });
-  } else {
-    res.status(401).send({ message: "No Token" });
-  }
-};
-
-export const isClient = (req, res, next) => {
-  const authorization = req.headers.authorization;
-  if (authorization) {
-    const token = authorization.slice(7, authorization.length);
-    jswebtoken.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decode) => {
-      if (err) {
-        res.status(401).send({ message: "Invalid Token" });
-      } else {
-        req.user = decode;
-        if (decode.role === "client") {
-          next();
-        } else {
-          res.status(401).send({ message: "Invalid User, this is not cliente" });
+          res.status(401).send({ message: `Invalid User, this is not ${role}` });
         }
       }
     });
