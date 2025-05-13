@@ -104,7 +104,7 @@ export const getAllUsers = async (req, res) => {
     query.profession = profession;
   }
 
-  query["deleted.isDeleted"] = false;
+  //query["deleted.isDeleted"] = false;
 
   const options = {
     page: parseInt(page, 10) || 1,
