@@ -57,11 +57,9 @@ export const createUser = async (req, res) => {
         .status(400)
         .json({ message: "Error de validación", errors: error.errors });
     } else if (error.code === 11000) {
-      return res
-        .status(400)
-        .json({
-          message: "El nombre de usuario o el correo electrónico ya existen",
-        });
+      return res.status(400).json({
+        message: "El nombre de usuario o el correo electrónico ya existen",
+      });
     }
     res.status(500).json({ message: "Error interno del servidor", error });
   }
@@ -448,14 +446,12 @@ export const loginUser = async (req, res) => {
 
     const accessToken = generateToken(user);
 
-    res
-      .status(200)
-      .json({
-        message: "Bienvenido",
-        accessToken: accessToken,
-        userId: user._id,
-        role: user.role,
-      });
+    res.status(200).json({
+      message: "Bienvenido",
+      accessToken: accessToken,
+      userId: user._id,
+      role: user.role,
+    });
   } catch (error) {
     res
       .status(500)

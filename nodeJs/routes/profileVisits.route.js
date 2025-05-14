@@ -1,6 +1,16 @@
 import express from 'express';
-import VisitController from '../controllers/profileVisits.controller.js'; 
-
+import {
+  createProfileVisit, 
+  getAllProfileVisits,
+  getProfileVisitsByHostId,
+  getProfileVisitsByVisitorId,
+  getProfileVisitsMetrics,
+  deleteProfileVisit,
+} from '../controllers/profileVisits.controller.js'; 
+import {
+  isAuth,
+  authRole
+} from '../middleware/auth.middleware.js'
 
 
 const visitRouter = express.Router();
@@ -17,7 +27,7 @@ const visitRouter = express.Router();
  * @returns {string} Success message.
  * @example POST http://localhost:3001/profileVisit
  */
-visitRouter.post("/profileVisit", VisitController.createProfileVisit);
+visitRouter.post("/profileVisit", createProfileVisit);
 
 /**
  * @route GET /profileVisit
@@ -26,7 +36,7 @@ visitRouter.post("/profileVisit", VisitController.createProfileVisit);
  * @returns {Array} List of profile visits.
  * @example GET http://localhost:3001/profileVisit
  */
-visitRouter.get('/profileVisit', VisitController.getAllProfileVisits);
+visitRouter.get('/profileVisit', getAllProfileVisits);
 
 
 /**
@@ -36,7 +46,7 @@ visitRouter.get('/profileVisit', VisitController.getAllProfileVisits);
  * @access Public
  * @example GET http://localhost:3001/profileVisit/visitorId/6160171b1494489759d31572
  */
-visitRouter.get('/profileVisit/visitorId/:id', VisitController.getProfileVisitsByVisitorId);
+visitRouter.get('/profileVisit/visitorId/:id', getProfileVisitsByVisitorId);
 
 /**
  * @route GET /profileVisit/hostId/:id
@@ -45,7 +55,17 @@ visitRouter.get('/profileVisit/visitorId/:id', VisitController.getProfileVisitsB
  * @access Public
  * @example GET http://localhost:3001/profileVisit/hostId/6160171b1494489759d31572
  */
-visitRouter.get('/profileVisit/hostId/:id', VisitController.getProfileVisitsByHostId);
+visitRouter.get('/profileVisit/hostId/:id', getProfileVisitsByHostId);
+
+
+/**
+ * @route GET /profileVisit/profile/:id/metrics
+ * @function getProfileVisitsMetrics
+ * @description Retrieves the number of profile visits for a specific host within an optional date range.
+ * @returns {Object} JSON response containing the count of profile visits.
+ * @example GET /api/profileVisit/profile/507f1f77bcf86cd799439011/metrics?startDate=2023-01-01&endDate=2023-12-31
+*/
+visitRouter.get('/profileVisit/profile/:id/metrics', isAuth, authRole('prof') , getProfileVisitsMetrics);
 
 /**
  * @route PATCH /profileVisit/:id
@@ -54,9 +74,7 @@ visitRouter.get('/profileVisit/hostId/:id', VisitController.getProfileVisitsByHo
  * @returns {string} Success message.
  * @example PATCH http://localhost:3001/profileVisit/6160171b1494489759d31572
  */
-visitRouter.patch('/profileVisit/delete/:id', VisitController.deleteProfileVisit);
-
-const profileVisitRouter = visitRouter;
+visitRouter.patch('/profileVisit/delete/:id',deleteProfileVisit);
 
 
 export default visitRouter;

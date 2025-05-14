@@ -1,8 +1,6 @@
-import mongoose, { Schema } from 'mongoose';
-import mongoosePaginate from 'mongoose-paginate-v2';
-import User from './user.model.js';
-
-
+import mongoose, { Schema } from "mongoose";
+import mongoosePaginate from "mongoose-paginate-v2";
+import User from "./user.model.js";
 
 /**
  * @typedef {object} DeletedSchema
@@ -10,39 +8,45 @@ import User from './user.model.js';
  * @property {objectId} isDeletedBy - ID of the user how deleted the element
  * @property {date} deletedAt - date of deletion
  */
-const DeletedSchema = new Schema({
-  isDeleted: {
-    type: Boolean,
-    default: false,
-    index: true,
+const DeletedSchema = new Schema(
+  {
+    isDeleted: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    isDeletedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    deletedAt: {
+      type: Date,
+    },
   },
-  isDeletedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-  },
-  deletedAt: {
-    type: Date,
-  },
-},{
-  _id: false
-})
+  {
+    _id: false,
+  }
+);
 
 /**
  * @typedef {object} Modification - Represents a modification made to an appointment.
  * @property {mongoose.Schema.Types.ObjectId} userId - ID of the user who made the modification. References 'User'. Required.
  * @property {Date} modifiedDate - Date and time of the modification. Defaults to the current date and time.
  */
-const modifactionSchema = new Schema({
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: User,
-    required: [true, 'El ID del usuario es obligatorio.'],
+const modifactionSchema = new Schema(
+  {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: User,
+      required: [true, "El ID del usuario es obligatorio."],
+    },
+    modifiedDate: {
+      type: Date,
+      default: Date.now,
+    },
   },
-  modifiedDate: {
-    type: Date,
-    default: Date.now,
-  },
-},{_id: false})
+  { _id: false }
+);
 
 /**
  * @typedef {object} Appointment
@@ -57,57 +61,66 @@ const modifactionSchema = new Schema({
  * @property {Date} createdAt - Date of document creation. Managed by Mongoose (timestamps).
  * @property {Date} updatedAt - Date of the last document update. Managed by Mongoose (timestamps).
  */
-const appointmentSchema = new Schema({
+const appointmentSchema = new Schema(
+  {
     clientId: {
-        type: Schema.Types.ObjectId,
-        ref: User, 
-        required: [true, 'El ID del cliente es obligatorio.'],
-        index: true, 
+      type: Schema.Types.ObjectId,
+      ref: User,
+      required: [true, "El ID del cliente es obligatorio."],
+      index: true,
     },
     profId: {
-        type: Schema.Types.ObjectId,
-        ref: User, 
-        required: [true, 'El ID del profesional es obligatorio.'],
-        index: true, 
+      type: Schema.Types.ObjectId,
+      ref: User,
+      required: [true, "El ID del profesional es obligatorio."],
+      index: true,
     },
     status: {
-        type: String,
-        required: [true, 'El estado de la cita es obligatorio.'],
-        enum: {
-            values: ['tentativo', 'aceptado', 'rechazado', 'cancelado', 'reorganizado'],
-        },
-        default: 'tentativo',
-        index: true, 
+      type: String,
+      required: [true, "El estado de la cita es obligatorio."],
+      enum: {
+        values: [
+          "tentativo",
+          "aceptado",
+          "rechazado",
+          "cancelado",
+          "reorganizado",
+        ],
+      },
+      default: "tentativo",
+      index: true,
     },
     office: {
-        type: String,
-        required: [true, 'La oficina de la cita es requerida'],
+      type: String,
+      required: [true, "La oficina de la cita es requerida"],
     },
     appointmentDateTime: {
-        type: Date,
-        required: [true, 'La fecha y la hora de la cita son requeridas'],
+      type: Date,
+      required: [true, "La fecha y la hora de la cita son requeridas"],
     },
     oldData: {
-        type: Object
+      type: Object,
     },
     deleted: DeletedSchema,
     modificationHistory: [modifactionSchema],
-}, {
-    timestamps: true, 
-});
+  },
+  {
+    timestamps: true,
+  }
+);
 
 // --- Plugins ---
 appointmentSchema.plugin(mongoosePaginate); // Add if you need pagination
 
 // --- Middleware for oldData ---
-appointmentSchema.pre('save', async function(next) {
+appointmentSchema.pre("save", async function (next) {
   if (!this.isNew) {
     try {
       const oldDoc = await this.constructor.findById(this._id).lean();
       if (oldDoc) {
-        delete oldDoc.oldData; 
-        delete oldDoc._id; 
-        delete oldDoc.createdAt; 
+        delete oldDoc.oldData;
+        delete oldDoc._id;
+        delete oldDoc.createdAt;
         delete oldDoc.updatedAt;
 
         this.oldData = oldDoc;
@@ -115,11 +128,11 @@ appointmentSchema.pre('save', async function(next) {
         this.oldData = {};
       }
     } catch (error) {
-      console.error('Error al capturar oldData en pre-save:', error);
-      this.oldData = { error: 'Fallo al capturar estado previo' };
+      console.error("Error al capturar oldData en pre-save:", error);
+      this.oldData = { error: "Fallo al capturar estado previo" };
     }
   }
-  next(); 
+  next();
 });
 
 // --- Indexes ---
@@ -129,6 +142,6 @@ appointmentSchema.index({ profId: 1, appointmentDateTime: 1 });
 appointmentSchema.index({ clientId: 1, appointmentDateTime: 1 });
 
 // --- Model ---
-const Appointment = mongoose.model('Appointment', appointmentSchema);
+const Appointment = mongoose.model("Appointment", appointmentSchema);
 
 export default Appointment;

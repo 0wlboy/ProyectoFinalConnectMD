@@ -1,7 +1,13 @@
-import express from 'express';
-import ReviewController from '../controllers/review.controller.js'; 
-
-
+import express from "express";
+import {
+  createReview,
+  getAllReviewsByClientId,
+  getAllReviewsByProfId,
+  updateReview,
+  deleteReview,
+  getReviewMetrics,
+} from "../controllers/review.controller.js";
+import { isAuth, authRole } from "../middleware/auth.middleware.js"; // Asegúrate que la ruta es correcta
 
 const reviewRouter = express.Router();
 
@@ -17,7 +23,7 @@ const reviewRouter = express.Router();
  * @returns {string} Success message.
  * @example POST http://localhost:3001/reviews
  */
-reviewRouter.post("/reviews", ReviewController.createReview);
+reviewRouter.post("/reviews", createReview);
 
 /**
  * @route GET /reviews/clienteId/:id
@@ -26,8 +32,12 @@ reviewRouter.post("/reviews", ReviewController.createReview);
  * @returns {Array} List of reviews.
  * @example GET http://localhost:3001/clientId/6160171b1494489759d31572
  */
-reviewRouter.get('/reviews/clienteId/:id', ReviewController.getAllReviewsByClientId);
-
+reviewRouter.get(
+  "/reviews/clienteId/:id",
+  isAuth,
+  authRole("prof", "admin"),
+  getAllReviewsByClientId
+);
 
 /**
  * @route GET /reviews/profId/:id
@@ -36,8 +46,26 @@ reviewRouter.get('/reviews/clienteId/:id', ReviewController.getAllReviewsByClien
  * @access Public
  * @example GET http://localhost:3001/profId/6160171b1494489759d31572
  */
-reviewRouter.get('/reviews/profId/:id', ReviewController.getAllReviewsByProfId);
+reviewRouter.get(
+  "/reviews/profId/:id",
+  isAuth,
+  authRole("prof", "admin"),
+  getAllReviewsByProfId
+);
 
+/**
+ * @route GET /reviews/profId/:profId/metrics
+ * @description Retrieves review metrics for a specific professional.
+ * @access Private (prof, admin) - Requires authentication and role 'prof' or 'admin'.
+ * @returns {Object} Metrics including total reviews, reviews by stars, and average rating.
+ * @example GET http://localhost:3001/api/reviews/profId/6160171b1494489759d31572/metrics
+ */
+reviewRouter.get(
+  "/reviews/profId/:profId/metrics",
+  isAuth,
+  authRole("prof", "admin"),
+  getReviewMetrics
+);
 
 /**
  * @route PATCH /reviews/:id
@@ -46,7 +74,12 @@ reviewRouter.get('/reviews/profId/:id', ReviewController.getAllReviewsByProfId);
  * @returns {string} Success message.
  * @example PATCH http://localhost:3001/reviews/update/6160171b1494489759d31572
  */
-reviewRouter.patch('/reviews/update/:id', ReviewController.updateReview);
+reviewRouter.patch(
+  "/reviews/update/:id",
+  isAuth,
+  authRole("client", "admin"),
+  updateReview
+);
 
 /**
  * @route PATCH /reviews/:id
@@ -55,10 +88,11 @@ reviewRouter.patch('/reviews/update/:id', ReviewController.updateReview);
  * @returns {string} Success message.
  * @example PATCH http://localhost:3001/reviews/delete/6160171b1494489759d31572
  */
-reviewRouter.patch('/reviews/delete/:id', ReviewController.deleteReview);
+reviewRouter.patch(
+  "/reviews/delete/:id",
+  isAuth,
+  authRole("admin"),
+  deleteReview
+);
 
-const visitRouter = reviewRouter;
-
-
-
-export default visitRouter;
+export default reviewRouter;

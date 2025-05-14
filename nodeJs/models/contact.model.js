@@ -1,7 +1,6 @@
-import mongoose, { Schema } from 'mongoose';
+import mongoose, { Schema } from "mongoose";
 import moongoosePaginate from "mongoose-paginate-v2"; //importar modulo paginacion
 import User from "./user.model.js";
-
 
 /**
  * @typedef {object} DeletedInfo
@@ -9,23 +8,25 @@ import User from "./user.model.js";
  * @property {mongoose.Schema.Types.ObjectId} isDeletedBy - ID of the user who performed the deletion. References 'User'.
  * @property {Date} deletedAt - Timestamp of the deletion.
  */
-const DeletedSchema = new Schema({
-  isDeleted: {
-    type: Boolean,
-    default: false,
-    index: true,
+const DeletedSchema = new Schema(
+  {
+    isDeleted: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    isDeletedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: User,
+    },
+    deletedAt: {
+      type: Date,
+    },
   },
-  isDeletedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: User,
-  },
-  deletedAt: {
-    type: Date,
-  },
-},{
-  _id: false
-})
-
+  {
+    _id: false,
+  }
+);
 
 /**
  * @typedef {object} Contact
@@ -42,57 +43,71 @@ const DeletedSchema = new Schema({
  * @property {Date} sendDate - Date the contact was sent (automatically filled, not null).
  * @property {Date} modifiedAt - Date the contact was last modified (automatically filled and updated).
  */
-const ContactSchema = new Schema({
-  senderId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: User,
-    required: true,
-  },
-  receiverId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: User, // Assuming 'prof' is a role within the User model
-    required: true,
-  },
-  affair: {
-    type: String,
-    enum: ['agendarCita', 'calificacion', 'rechazo', 'cancelacion', 'reporte'],
-    required: true,
-  },
-  cause: {
-    type: String,
-    enum: ['conductaInapropiada', 'conductaSospechosa', 'estafa', 'negligencia', 'otro'],
-    required: function () {
-      return this.affair === 'reporte';
+const ContactSchema = new Schema(
+  {
+    senderId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: User,
+      required: true,
+    },
+    receiverId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: User, // Assuming 'prof' is a role within the User model
+      required: true,
+    },
+    affair: {
+      type: String,
+      enum: [
+        "agendarCita",
+        "calificacion",
+        "rechazo",
+        "cancelacion",
+        "reporte",
+      ],
+      required: true,
+    },
+    cause: {
+      type: String,
+      enum: [
+        "conductaInapropiada",
+        "conductaSospechosa",
+        "estafa",
+        "negligencia",
+        "otro",
+      ],
+      required: function () {
+        return this.affair === "reporte";
+      },
+    },
+    description: {
+      type: String,
+      required: function () {
+        return this.affair === "reporte";
+      },
+    },
+    deleted: DeletedSchema,
+    isSent: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    modifiedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    sendDate: {
+      type: Date,
+      default: Date.now,
+      required: true,
     },
   },
-  description: {
-    type: String,
-    required: function () {
-      return this.affair === 'reporte';
-    },
-  },
-  deleted: DeletedSchema,
-  isSent: {
-    type: Boolean,
-    default: false,
-    index: true,
-  },
-  modifiedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User', 
-  },
-  sendDate: {
-    type: Date,
-    default: Date.now,
-    required: true,
-  },
-},
-{
-  timestamps: true,
-});
+  {
+    timestamps: true,
+  }
+);
 
-ContactSchema.plugin(moongoosePaginate);//add pagination
+ContactSchema.plugin(moongoosePaginate); //add pagination
 
-const Contact = mongoose.model('Contact', ContactSchema);
+const Contact = mongoose.model("Contact", ContactSchema);
 
 export default Contact;

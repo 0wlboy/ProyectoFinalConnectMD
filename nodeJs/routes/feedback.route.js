@@ -7,7 +7,7 @@ import {
   deleteFeedback,
   updateFeedback,
 } from "../controllers/feedback.controller.js";
-//import { isAuthenticated } from '../middleware/aunth.middleware.js';
+import { isAuth, authRole } from "../middleware/auth.middleware.js";
 
 const feedbackRouter = express.Router();
 
@@ -32,7 +32,7 @@ feedbackRouter.post("/feedback", createFeedback);
  * @returns {Array} List of not deleted feedback entries.
  * @example GET http://localhost:3001/feedback
  */
-feedbackRouter.get("/feedback", getAllFeedback);
+feedbackRouter.get("/feedback", isAuth, authRole("admin"), getAllFeedback);
 
 /**
  * @route GET /feedback/deleted
@@ -41,7 +41,12 @@ feedbackRouter.get("/feedback", getAllFeedback);
  * @returns {Array} List of deleted feedback entries.
  * @example GET http://localhost:3001/feedback/deleted
  */
-feedbackRouter.get("/feedback/deleted", getAllDeletedFeedback);
+feedbackRouter.get(
+  "/feedback/deleted",
+  isAuth,
+  authRole("admin"),
+  getAllDeletedFeedback
+);
 
 /**
  * @route GET /feedback/:id
@@ -50,7 +55,7 @@ feedbackRouter.get("/feedback/deleted", getAllDeletedFeedback);
  * @access Public
  * @example GET http://localhost:3001/feedback/6160171b1494489759d31572
  */
-feedbackRouter.get("/feedback/:id", getFeedbackById);
+feedbackRouter.get("/feedback/:id", isAuth, authRole("admin"), getFeedbackById);
 
 /**
  * @route PATCH /feedback/:id
@@ -59,7 +64,12 @@ feedbackRouter.get("/feedback/:id", getFeedbackById);
  * @access Private
  * @example PATCH http://localhost:3001/feedback/update/6160171b1494489759d31572
  */
-feedbackRouter.patch("/feedback/update/:id", updateFeedback);
+feedbackRouter.patch(
+  "/feedback/update/:id",
+  isAuth,
+  authRole("admin"),
+  updateFeedback
+);
 
 /**
  * @route PATCH /feedback/:id
@@ -68,6 +78,11 @@ feedbackRouter.patch("/feedback/update/:id", updateFeedback);
  * @access Private
  * @example PATCH http://localhost:3001/feedback/delete/6160171b1494489759d31572
  */
-feedbackRouter.patch("/feedback/delete/:id", deleteFeedback);
+feedbackRouter.patch(
+  "/feedback/delete/:id",
+  isAuth,
+  authRole("admin"),
+  deleteFeedback
+);
 
 export default feedbackRouter;

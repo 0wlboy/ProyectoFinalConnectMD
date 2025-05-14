@@ -1,5 +1,14 @@
-import express from 'express';
-import ContactController from '../controllers/contact.controller.js'; // Asegúrate de que la ruta al controlador sea correcta
+import express from "express";
+import {
+  createContact,
+  getAllContacts,
+  getAllDeletedContacts,
+  getContactById,
+  updateContact,
+  deleteContact,
+  getReportMetrics,
+} from "../controllers/contact.controller.js"; // Asegúrate de que la ruta al controlador sea correcta
+import { isAuth, authRole } from "../middleware/auth.middleware.js"; // Importar middlewares de autenticación
 
 const contactRouter = express.Router();
 
@@ -15,7 +24,7 @@ const contactRouter = express.Router();
  * @returns {Object} The created contact.
  * @example POST http://localhost:3001/contacts
  */
-contactRouter.post('/contacts', ContactController.createContact);
+contactRouter.post("/contacts", createContact);
 
 /**
  * @route GET /contacts
@@ -24,7 +33,7 @@ contactRouter.post('/contacts', ContactController.createContact);
  * @returns {Array} List of not deleted contacts.
  * @example GET http://localhost:3001/contacts
  */
-contactRouter.get('/contacts', ContactController.getAllContacts);
+contactRouter.get("/contacts", isAuth, authRole("admin"), getAllContacts);
 
 /**
  * @route GET /contacts/deleted
@@ -33,7 +42,12 @@ contactRouter.get('/contacts', ContactController.getAllContacts);
  * @returns {Array} List of deleted contacts.
  * @example GET http://localhost:3001/contacts/deleted
  */
-contactRouter.get('/contacts/deleted', ContactController.getAllDeletedContacts);
+contactRouter.get(
+  "/contacts/deleted",
+  isAuth,
+  authRole("admin"),
+  getAllDeletedContacts
+);
 
 /**
  * @route GET /contacts/:id
@@ -42,7 +56,7 @@ contactRouter.get('/contacts/deleted', ContactController.getAllDeletedContacts);
  * @access Public
  * @example GET http://localhost:3001/contacts/6160171b1494489759d31572
  */
-contactRouter.get('/contacts/:id', ContactController.getContactById);
+contactRouter.get("/contacts/:id", isAuth, authRole("admin"), getContactById);
 
 /**
  * @route PATCH /contacts/:id
@@ -51,7 +65,12 @@ contactRouter.get('/contacts/:id', ContactController.getContactById);
  * @access Private
  * @example PATCH http://localhost:3001/contacts/update/6160171b1494489759d31572
  */
-contactRouter.patch('/contacts/update/:id', ContactController.updateContact);
+contactRouter.patch(
+  "/contacts/update/:id",
+  isAuth,
+  authRole("admin"),
+  updateContact
+);
 
 /**
  * @route PATCH /contacts/:id
@@ -60,6 +79,25 @@ contactRouter.patch('/contacts/update/:id', ContactController.updateContact);
  * @access Private
  * @example PATCH http://localhost:3001/contacts/delete/6160171b1494489759d31572
  */
-contactRouter.patch('/contacts/delete/:id', ContactController.deleteContact);
+contactRouter.patch(
+  "/contacts/delete/:id",
+  isAuth,
+  authRole("admin"),
+  deleteContact
+);
+
+/**
+ * @route GET /contacts/reports/metrics
+ * @description Retrieves metrics for reports (contacts with affair 'reporte').
+ * @access Private (admin) - Requires authentication and 'admin' role.
+ * @returns {Object} Metrics including reports by day, total report count, reports by cause, and reported users.
+ * @example GET http://localhost:3001/api/contacts/reports/metrics?startDate=2023-01-01&endDate=2023-12-31&cause=conductaInapropiada
+ */
+contactRouter.get(
+  "/contacts/reports/metrics",
+  isAuth,
+  authRole("admin"),
+  getReportMetrics
+);
 
 export default contactRouter;

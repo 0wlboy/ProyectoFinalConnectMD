@@ -8,10 +8,7 @@ import {
   deleteUser,
   loginUser,
 } from "../controllers/user.controller.js";
-import {
-  isAuth,
-  authRole
-} from "../middleware/auth.middleware.js"; // Asegúrate que la ruta es correcta
+import { isAuth, authRole } from "../middleware/auth.middleware.js"; // Asegúrate que la ruta es correcta
 
 const userRouter = express.Router();
 
@@ -45,12 +42,7 @@ userRouter.get("/users", getAllUsers);
  * @returns {Array} List of deleted users.
  * @example GET http://localhost:3001/users/deleted
  */
-userRouter.get(
-  "/users/deleted",
-  isAuth,
-  authRole('admin'),
-  getAllDeletedUsers
-);
+userRouter.get("/users/deleted", isAuth, authRole("admin"), getAllDeletedUsers);
 
 /**
  * @route GET /users/:id
@@ -59,7 +51,7 @@ userRouter.get(
  * @access Public
  * @example GET http://localhost:3001/users/6160171b1494489759d31572
  */
-userRouter.get("/users/:id", getUserById);
+userRouter.get("/users/:id", isAuth, authRole("admin"), getUserById);
 
 /**
  * @route PATCH /users/:id
@@ -68,7 +60,7 @@ userRouter.get("/users/:id", getUserById);
  * @access Private
  * @example PATCH http://localhost:3001/users/update/6160171b1494489759d31572
  */
-userRouter.patch("/users/update/:id", updateUser);
+userRouter.patch("/users/update/:id", isAuth, authRole("admin"), updateUser);
 
 /**
  * @route PATCH /users/:id
@@ -77,7 +69,7 @@ userRouter.patch("/users/update/:id", updateUser);
  * @access Private
  * @example PATCH http://localhost:3001/users/delete/6160171b1494489759d31572
  */
-userRouter.patch("/users/delete/:id", deleteUser);
+userRouter.patch("/users/delete/:id", isAuth, authRole("admin"), deleteUser);
 
 /**
  * @route POST /users/login

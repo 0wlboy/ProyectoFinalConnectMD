@@ -25,14 +25,14 @@ export const getAllAppointments = async (req, res) => {
 
     try {
         const result = await Appointment.paginate(options);
-        const appointment = result.docs;
-        const totalAppointment = result.total;
+        const appointments = result.docs; // Renamed for clarity (plural)
+        const totalAppointments = result.totalDocs; // Corrected to totalDocs
 
         res.status(200).json({
-        appointment,
+        appointments,
         page,
         limit,
-        total: totalAppointment,
+        total: totalAppointments,
         totalPages: result.totalPages,
         }); // 200 OK
 
@@ -141,6 +141,82 @@ export const getAllAppointmentsByProfId = async (req, res) => {
         console.error(`Error al obtener las citas por el ID del profesional ${profId}:`, error);
     }
 };
+
+
+/**
+ * @async
+ * @function getAppointmentMetrics
+ * @description Retrieves appointment metrics for a specific professional, including appointments grouped by day and office,
+ *              and identifies the busiest day and office.
+ * @param {Object} req - HTTP request object.
+ * @param {string} req.params.profId - The ID of the professional whose appointment metrics are being requested.
+ * @param {Object} res - HTTP response object.
+ * @returns {Object} JSON response with `appointmentsByDay`, `busiestDay`, `appointmentsByOffice`, and `busiestOffice`.
+ * @example GET /api/appointments/profId/60d5ecb8d7f8f8001f8e8c1a/metrics
+ */
+export const getAppointmentMetrics = async (req, res) => {
+  try {
+    const { profId } = req.params;
+
+    // Validar que profId sea proporcionado
+    if (!profId) {
+      return res.status(400).json({ message: 'El ID del profesional es requerido.' });
+    }
+
+    // Validar que profId sea un ObjectId válido
+    if (!mongoose.Types.ObjectId.isValid(profId)) {
+      return res.status(400).json({ message: 'ID de profesional inválido.' });
+    }
+    const profObjectId = mongoose.Types.ObjectId(profId);
+
+    // Validar que el profesional exista
+    const professionalExists = await User.findById(profObjectId).select('_id').lean();
+    if (!professionalExists) {
+      return res.status(404).json({ message: 'Profesional no encontrado.' });
+    }
+
+    // Agrupar citas por día
+    const appointmentsByDay = await Appointment.aggregate([
+      { $match: { profId: profObjectId } },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$appointmentDateTime" } },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { _id: 1 } } // Sort by date for chronological order, busiestDay can be found after
+    ]);
+
+    // Encontrar el día con más citas
+    const busiestDay = appointmentsByDay.length > 0 ? appointmentsByDay[0] : null;
+
+    // Agrupar citas por oficina
+    const appointmentsByOffice = await Appointment.aggregate([
+      { $match: { profId: profObjectId } },
+      {
+        $group: {
+          _id: "$office",
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { count: -1 } }
+    ]);
+
+    // Encontrar la oficina con más citas
+    const busiestOffice = appointmentsByOffice.length > 0 ? appointmentsByOffice[0] : null;
+
+    res.status(200).json({
+      appointmentsByDay,
+      busiestDay,
+      appointmentsByOffice,
+      busiestOffice
+    });
+  } catch (error) {
+    console.error(`Error al obtener las métricas de citas para el profesional ${req.params.profId}:`, error);
+    res.status(500).json({ message: 'Error al obtener las métricas de citas', error: error.message });
+  }
+};
+
 
 // Controller function to create a appointment
 /**
@@ -298,14 +374,3 @@ export const deleteAppointment = async (req, res) => {
       res.status(500).json({ message: 'Error al eliminar la cita', error });
     }
     }
-
-const AppointmentController = {
-    getAllAppointments,
-    getAllAppointmentsByClientId,
-    getAllAppointmentsByProfId,
-    createAppointment,
-    updateAppointment,
-    deleteAppointment
-};
-
-export default AppointmentController;

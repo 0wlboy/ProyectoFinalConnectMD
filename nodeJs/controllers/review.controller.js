@@ -146,6 +146,106 @@ export const getAllReviewsByClientId = async (req, res) => {
   };
 
 
+/**
+ * @async
+ * @function getReviewMetrics
+ * @description Retrieves review metrics for a specific professional, including total reviews, distribution by stars, and average rating.
+ * @param {Object} req - HTTP request object.
+ * @param {string} req.params.profId - The ID of the professional whose review metrics are being requested.
+ * @param {Object} res - HTTP response object.
+ * @returns {Object} JSON response with `totalReviews`, `reviewsByStars` (object with counts for each star rating), and `averageRating`.
+ * @example GET /api/reviews/profId/60d5ecb8d7f8f8001f8e8c1a/metrics
+ */
+export const getReviewMetrics = async (req, res) => {
+  try {
+    const { profId } = req.params;
+
+    // Validar que profId sea proporcionado
+    if (!profId) {
+      return res.status(400).json({ message: 'El ID del profesional es requerido.' });
+    }
+
+    // Validar que profId sea un ObjectId válido
+    if (!mongoose.Types.ObjectId.isValid(profId)) {
+      return res.status(400).json({ message: 'ID de profesional inválido.' });
+    }
+    const profObjectId = mongoose.Types.ObjectId(profId);
+
+    const profExists = await User.findById(profObjectId).select('_id').lean();
+    if (!profExists) {
+        return res.status(404).json({ message: 'Profesional no encontrado.' });
+    }
+
+    const aggregationPipeline = [
+      {
+        $match: {
+          profId: profObjectId,
+          'deleted.isDeleted': { $ne: true } // Considerar solo reseñas no eliminadas
+        }
+      },
+      {
+        $facet: {
+          overallMetrics: [
+            {
+              $group: {
+                _id: null,
+                totalReviews: { $sum: 1 },
+                averageRating: { $avg: "$stars" }
+              }
+            }
+          ],
+          starsDistribution: [
+            {
+              $group: {
+                _id: "$stars",
+                count: { $sum: 1 }
+              }
+            },
+            { $sort: { _id: 1 } } // Ordenar por número de estrellas
+          ]
+        }
+      }
+    ];
+
+    const results = await Review.aggregate(aggregationPipeline);
+
+    let totalReviews = 0;
+    let averageRating = 0;
+    const reviewsByStars = {
+      oneStar: 0,
+      twoStars: 0,
+      threeStars: 0,
+      fourStars: 0,
+      fiveStars: 0
+    };
+
+    if (results.length > 0 && results[0].overallMetrics.length > 0) {
+      const overall = results[0].overallMetrics[0];
+      totalReviews = overall.totalReviews || 0;
+      averageRating = overall.averageRating !== null && overall.averageRating !== undefined ? parseFloat(overall.averageRating.toFixed(2)) : 0;
+
+      results[0].starsDistribution.forEach(item => {
+        if (item._id === 1) reviewsByStars.oneStar = item.count;
+        else if (item._id === 2) reviewsByStars.twoStars = item.count;
+        else if (item._id === 3) reviewsByStars.threeStars = item.count;
+        else if (item._id === 4) reviewsByStars.fourStars = item.count;
+        else if (item._id === 5) reviewsByStars.fiveStars = item.count;
+      });
+    }
+
+    res.status(200).json({
+      totalReviews,
+      reviewsByStars,
+      averageRating
+    });
+  } catch (error) {
+    console.error(`Error al obtener las métricas de reseñas para el profesional ${req.params.profId}:`, error);
+    res.status(500).json({ message: 'Error interno del servidor al obtener las métricas de reseñas.', error: error.message });
+  }
+};
+
+
+
   /**
  * @async
  * @function updateReview
@@ -252,16 +352,3 @@ export const deleteReview = async (req, res) => {
     res.status(500).json({ message: 'Error al eliminar la review', error: error.message });
   }
 }
-
-
-
-const ReviewController ={
-  createReview,
-  updateReview,
-  deleteReview,
-  getAllReviewsByClientId,
-  getAllReviewsByProfId,
-  deleteReview
-}
-
-export default ReviewController;
