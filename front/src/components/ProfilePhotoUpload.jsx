@@ -14,7 +14,7 @@ const ProfilePhotoUpload = ({onPhotoUpload}) => {
       reader.onload = (event) => {
         const url = event.target.result;
         setPhotoURL(url);
-        onPhotoUpload(url)
+        onPhotoUpload(file); // Pasar el objeto File al padre
       };
       reader.readAsDataURL(file);
     }

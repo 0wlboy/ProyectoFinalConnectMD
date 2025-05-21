@@ -15,7 +15,7 @@ const RegistrationFormClient = () => {
     firstName: '',
     lastName: '',
     email: '',
-    profilePicture:'',
+    profilePicture: null, // Cambiado para almacenar el objeto File o null
     password: '',
     confirmPassword: '',
     role:'client',
@@ -39,10 +39,11 @@ const RegistrationFormClient = () => {
     });
   };
 
-  const handlePhotoUpload = (photoURL) => {
+  // Recibe el objeto File del componente ProfilePhotoUpload
+  const handlePhotoUpload = (file) => {
     setFormData({
       ...formData,
-      photoURL: photoURL
+      profilePicture: file // Almacena el objeto File
     });
   };
 
@@ -56,7 +57,28 @@ const RegistrationFormClient = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('http://localhost:3000/api/register', formData);
+      // Crear un objeto FormData para enviar archivos
+      const data = new FormData();
+      data.append('firstName', formData.firstName);
+      data.append('lastName', formData.lastName);
+      data.append('email', formData.email);
+      data.append('password', formData.password);
+      data.append('role', formData.role);
+      data.append('country', formData.country); // Asegúrate que el backend maneje esto
+      data.append('city', formData.city);     // Asegúrate que el backend maneje esto
+      
+      // Añadir la foto de perfil si existe
+      if (formData.profilePicture) {
+        data.append('profilePicture', formData.profilePicture, formData.profilePicture.name);
+      }
+
+      // El endpoint debe ser el que espera 'multipart/form-data' en el backend
+      // por ejemplo, 'http://localhost:3000/api/users/register' si tu router base es '/api'
+      const response = await axios.post('http://localhost:3000/api/users/register', data, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
       console.log('Registro exitoso:', response.data);
       // Aquí puedes manejar la respuesta del servidor, como redirigir al usuario o mostrar un mensaje de éxito
     } catch (error) {

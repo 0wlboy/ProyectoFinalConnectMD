@@ -1,6 +1,32 @@
 import User from "../models/user.model.js";
 import mongoose from "mongoose";
 import { generateToken } from "../middleware/auth.middleware.js";
+import multer from 'multer';
+import path  from 'path';
+
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, process.env.UPLOAD_PATH || 'uploads/users');
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
+    cb(null, file.fieldname + '-' + uniqueSuffix)
+  }
+})
+
+export const upload = multer({
+  storage: storage,
+  fileFilter: (req, file, cb) => {
+    // Ejemplo de filtro de tipo de archivo (permitir solo imágenes)
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Solo se permiten archivos de imagen!'), false);
+    }
+  },
+  limits: { fileSize: 1024 * 1024 * 5 } // Límite de 5MB por archivo
+});
 
 /**
  * @module UserController
@@ -31,12 +57,15 @@ export const createUser = async (req, res) => {
     lastName,
     email,
     password,
-    role,
-    profilePicture,
+    role,    
     locations,
     profession,
-    officePictures,
   } = req.body;
+
+  // Obtener rutas de archivos de req.files (poblado por multer)
+  const profilePicturePath = req.files?.profilePicture?.[0]?.path;
+  const officePicturesPaths = req.files?.officePictures?.map(file => file.path) || [];
+
   try {
     const user = new User({
       firstName,
@@ -44,10 +73,10 @@ export const createUser = async (req, res) => {
       email,
       password,
       role,
-      profilePicture,
+      profilePicture: profilePicturePath, // Guardar la ruta del archivo
       locations,
       profession,
-      officePictures,
+      officePictures: officePicturesPaths, // Guardar las rutas de los archivos
     });
     await user.save();
     res.status(201).json({ message: "Usuario creado con éxito" });

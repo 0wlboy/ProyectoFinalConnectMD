@@ -7,6 +7,7 @@ import {
   updateUser,
   deleteUser,
   loginUser,
+  upload
 } from "../controllers/user.controller.js";
 import { isAuth, authRole } from "../middleware/auth.middleware.js"; // Asegúrate que la ruta es correcta
 
@@ -24,7 +25,14 @@ const userRouter = express.Router();
  * @returns {Object} The register user.
  * @example POST http://localhost:3001/users/register
  */
-userRouter.post("/users/register", createUser);
+userRouter.post(
+  "/users/register",
+  upload.fields([
+    { name: 'profilePicture', maxCount: 1 },
+    { name: 'officePictures', maxCount: 5 } // Ajusta maxCount según necesites
+  ]),
+  createUser
+);
 
 /**
  * @route GET /users
