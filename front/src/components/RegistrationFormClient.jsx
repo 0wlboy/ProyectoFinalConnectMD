@@ -27,6 +27,8 @@ const RegistrationFormClient = () => {
     country: '',
     city: ''
   });
+  const [isLoading, setIsLoading] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState({ message: '', type: '' }); // type: 'success' or 'error'
   const [errors, setErrors] = useState({
     firstName: '',
     lastName: '',
@@ -105,62 +107,111 @@ const RegistrationFormClient = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitStatus({ message: '', type: '' }); // Clear previous submit messages
 
-    // Validar todos los campos antes de enviar
-    let isValid = true;
-    const newErrors = { ...errors };
+    // --- Refined Validation ---
+    const validationErrors = {};
+    let formIsValid = true;
 
-    if (!nameRegex.test(formData.firstName)) {
-      newErrors.firstName = 'Solo se permiten letras y espacios.';
-      isValid = false;
+    // Validate firstName
+    if (!formData.firstName.trim()) {
+        validationErrors.firstName = 'El nombre es requerido.';
+        formIsValid = false;
+    } else if (!nameRegex.test(formData.firstName)) {
+        validationErrors.firstName = 'Solo se permiten letras y espacios.';
+        formIsValid = false;
     }
 
-    if (!nameRegex.test(formData.lastName)) {
-      newErrors.lastName = 'Solo se permiten letras y espacios.';
-      isValid = false;
+    // Validate lastName
+    if (!formData.lastName.trim()) {
+        validationErrors.lastName = 'El apellido es requerido.';
+        formIsValid = false;
+    } else if (!nameRegex.test(formData.lastName)) {
+        validationErrors.lastName = 'Solo se permiten letras y espacios.';
+        formIsValid = false;
     }
 
-    if (!emailRegex.test(formData.email)) {
-      newErrors.email = 'Por favor, introduce un correo electrónico válido.';
-      isValid = false;
+    // Validate email
+    if (!formData.email.trim()) {
+        validationErrors.email = 'El correo electrónico es requerido.';
+        formIsValid = false;
+    } else if (!emailRegex.test(formData.email)) {
+        validationErrors.email = 'Por favor, introduce un correo electrónico válido.';
+        formIsValid = false;
     }
 
-    if (!passwordRegex.test(formData.password)) {
-      newErrors.password = 'La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial.';
-      isValid = false;
+    // Validate password
+    if (!formData.password) {
+        validationErrors.password = 'La contraseña es requerida.';
+        formIsValid = false;
+    } else if (!passwordRegex.test(formData.password)) {
+        validationErrors.password = 'La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial.';
+        formIsValid = false;
     }
 
-    if (formData.confirmPassword !== formData.password) {
-      newErrors.confirmPassword = 'Las contraseñas no coinciden.';
-      isValid = false;
+    // Validate confirmPassword
+    if (!formData.confirmPassword) {
+        validationErrors.confirmPassword = 'Por favor, confirma tu contraseña.';
+        formIsValid = false;
+    } else if (formData.confirmPassword !== formData.password) {
+        validationErrors.confirmPassword = 'Las contraseñas no coinciden.';
+        formIsValid = false;
     }
+    
+    setErrors({
+        firstName: validationErrors.firstName || '',
+        lastName: validationErrors.lastName || '',
+        email: validationErrors.email || '',
+        password: validationErrors.password || '',
+        confirmPassword: validationErrors.confirmPassword || '',
+    });
 
-    setErrors(newErrors);
+    if (!formIsValid) {
+        return;
+    }
+    // --- End Refined Validation ---
 
-    if (isValid) {
-      try {
-        const data = new FormData();
-        data.append('firstName', formData.firstName);
-        data.append('lastName', formData.lastName);
-        data.append('email', formData.email);
-        data.append('password', formData.password);
-        data.append('role', formData.role);
-        data.append('country', formData.country);
-        data.append('city', formData.city);
+    setIsLoading(true);
+    try {
+      const data = new FormData();
+      data.append('firstName', formData.firstName);
+      data.append('lastName', formData.lastName);
+      data.append('email', formData.email);
+      data.append('password', formData.password);
+      data.append('role', formData.role);
+      data.append('country', formData.country);
+      data.append('city', formData.city);
 
-        if (formData.profilePicture) {
-          data.append('profilePicture', formData.profilePicture, formData.profilePicture.name);
-        }
-
-        const response = await axios.post('http://localhost:5173/api/users/register', data, {
+      if (formData.profilePicture) {
+        data.append('profilePicture', formData.profilePicture, formData.profilePicture.name);
+      }
+      // Consider using an environment variable for the API URL
+      const API_URL = 'http://localhost:5173/users/register';
+      const response = await axios.post(API_URL, data, {
           headers: {
             'Content-Type': 'multipart/form-data'
           }
         });
         console.log('Registro exitoso:', response.data);
-      } catch (error) {
+        setSubmitStatus({ message: '¡Registro exitoso! Ya puedes iniciar sesión.', type: 'success' });
+        // Optionally, clear form or redirect:
+        // setFormData({ firstName: '', lastName: '', ... });
+        // setTimeout(() => navigate('/login'), 3000); // If using react-router v6
+    } catch (error) {
         console.error('Error al registrar:', error);
-      }
+        let errorMessage = 'Error al registrar. Inténtalo de nuevo más tarde.';
+        if (error.response && error.response.data && error.response.data.message) {
+            errorMessage = error.response.data.message;
+        } else if (error.message) {
+            errorMessage = error.message;
+        }
+        setSubmitStatus({ message: errorMessage, type: 'error' });
+        // If backend returns specific field errors, you might want to update `errors` state:
+        // if (error.response && error.response.data && error.response.data.errors) {
+        //   setErrors(prevErrors => ({ ...prevErrors, ...error.response.data.errors }));
+        // }
+    } finally {
+        setIsLoading(false);
     }
   };
 
@@ -172,6 +223,14 @@ const RegistrationFormClient = () => {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="flex justify-center mb-6">
+          {/* Display API submission status messages */}
+          {submitStatus.message && (
+            <p className={`text-sm mb-4 ${submitStatus.type === 'error' ? 'text-red-500' : 'text-green-500'}`}>
+              {submitStatus.message}
+            </p>
+          )}
+        </div>
         <div className="flex justify-center mb-6">
           <ProfilePhotoUpload onPhotoUpload={handlePhotoUpload} />
         </div>
@@ -344,9 +403,10 @@ const RegistrationFormClient = () => {
 
         <Button
           type="submit"
-          className="w-full bg-[#00bcd4] hover:bg-[#00aec5] text-white font-medium py-2 transition-colors"
+          className="w-full bg-[#00bcd4] hover:bg-[#00aec5] text-white font-medium py-2 transition-colors disabled:opacity-50"
+          disabled={isLoading}
         >
-          Registrar
+          {isLoading ? 'Registrando...' : 'Registrar'}
         </Button>
       </form>
 
