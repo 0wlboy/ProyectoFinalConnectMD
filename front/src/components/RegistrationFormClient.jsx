@@ -2,11 +2,16 @@ import { useState } from 'react';
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { Eye, EyeOff, Mail, Lock, User, Globe, MapPin } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"; 
-import { Checkbox } from "./ui/checkbox"; 
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Link } from 'react-router-dom';
 import ProfilePhotoUpload from './ProfilePhotoUpload';
-import axios from 'axios'
+import axios from 'axios';
+
+// Expresiones regulares para validación
+const nameRegex = /^[A-Za-zÁÉÍÓÚÑáéíóúñ\s]+$/;
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[~!@#$%^&*()_+{}:;<>,.?/\\-]).{8,}$/;
+;
 
 const RegistrationFormClient = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -15,12 +20,19 @@ const RegistrationFormClient = () => {
     firstName: '',
     lastName: '',
     email: '',
-    profilePicture: null, // Cambiado para almacenar el objeto File o null
+    profilePicture: null,
     password: '',
     confirmPassword: '',
-    role:'client',
+    role: 'client',
     country: '',
     city: ''
+  });
+  const [errors, setErrors] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
   });
 
   const togglePasswordVisibility = () => {
@@ -37,13 +49,50 @@ const RegistrationFormClient = () => {
       ...formData,
       [name]: value
     });
+
+    // Validar el campo actual
+    validateField(name, value);
   };
 
-  // Recibe el objeto File del componente ProfilePhotoUpload
+  const validateField = (name, value) => {
+    let error = '';
+
+    switch (name) {
+      case 'firstName':
+      case 'lastName':
+        if (!nameRegex.test(value)) {
+          error = 'Solo se permiten letras y espacios.';
+        }
+        break;
+      case 'email':
+        if (!emailRegex.test(value)) {
+          error = 'Por favor, introduce un correo electrónico válido.';
+        }
+        break;
+      case 'password':
+        if (!passwordRegex.test(value)) {
+          error = 'La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial.';
+        }
+        break;
+      case 'confirmPassword':
+        if (value !== formData.password) {
+          error = 'Las contraseñas no coinciden.';
+        }
+        break;
+      default:
+        break;
+    }
+
+    setErrors({
+      ...errors,
+      [name]: error
+    });
+  };
+
   const handlePhotoUpload = (file) => {
     setFormData({
       ...formData,
-      profilePicture: file // Almacena el objeto File
+      profilePicture: file
     });
   };
 
@@ -56,34 +105,62 @@ const RegistrationFormClient = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      // Crear un objeto FormData para enviar archivos
-      const data = new FormData();
-      data.append('firstName', formData.firstName);
-      data.append('lastName', formData.lastName);
-      data.append('email', formData.email);
-      data.append('password', formData.password);
-      data.append('role', formData.role);
-      data.append('country', formData.country); // Asegúrate que el backend maneje esto
-      data.append('city', formData.city);     // Asegúrate que el backend maneje esto
-      
-      // Añadir la foto de perfil si existe
-      if (formData.profilePicture) {
-        data.append('profilePicture', formData.profilePicture, formData.profilePicture.name);
-      }
 
-      // El endpoint debe ser el que espera 'multipart/form-data' en el backend
-      // por ejemplo, 'http://localhost:3000/api/users/register' si tu router base es '/api'
-      const response = await axios.post('http://localhost:3000/api/users/register', data, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
+    // Validar todos los campos antes de enviar
+    let isValid = true;
+    const newErrors = { ...errors };
+
+    if (!nameRegex.test(formData.firstName)) {
+      newErrors.firstName = 'Solo se permiten letras y espacios.';
+      isValid = false;
+    }
+
+    if (!nameRegex.test(formData.lastName)) {
+      newErrors.lastName = 'Solo se permiten letras y espacios.';
+      isValid = false;
+    }
+
+    if (!emailRegex.test(formData.email)) {
+      newErrors.email = 'Por favor, introduce un correo electrónico válido.';
+      isValid = false;
+    }
+
+    if (!passwordRegex.test(formData.password)) {
+      newErrors.password = 'La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial.';
+      isValid = false;
+    }
+
+    if (formData.confirmPassword !== formData.password) {
+      newErrors.confirmPassword = 'Las contraseñas no coinciden.';
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+
+    if (isValid) {
+      try {
+        const data = new FormData();
+        data.append('firstName', formData.firstName);
+        data.append('lastName', formData.lastName);
+        data.append('email', formData.email);
+        data.append('password', formData.password);
+        data.append('role', formData.role);
+        data.append('country', formData.country);
+        data.append('city', formData.city);
+
+        if (formData.profilePicture) {
+          data.append('profilePicture', formData.profilePicture, formData.profilePicture.name);
         }
-      });
-      console.log('Registro exitoso:', response.data);
-      // Aquí puedes manejar la respuesta del servidor, como redirigir al usuario o mostrar un mensaje de éxito
-    } catch (error) {
-      console.error('Error al registrar:', error);
-      // Aquí puedes manejar el error, como mostrar un mensaje de error al usuario
+
+        const response = await axios.post('http://localhost:5173/api/users/register', data, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+        console.log('Registro exitoso:', response.data);
+      } catch (error) {
+        console.error('Error al registrar:', error);
+      }
     }
   };
 
@@ -96,7 +173,7 @@ const RegistrationFormClient = () => {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="flex justify-center mb-6">
-          <ProfilePhotoUpload onPhotoUpload={handlePhotoUpload}/>
+          <ProfilePhotoUpload onPhotoUpload={handlePhotoUpload} />
         </div>
 
         <div className="space-y-2">
@@ -114,6 +191,7 @@ const RegistrationFormClient = () => {
               className="pl-10 bg-blue-50 border-blue-100 focus:border-[#00bcd4] focus:ring-[#00bcd4] transition-all"
               required
             />
+            {errors.firstName && <p className="text-red-500 text-xs mt-1">{errors.firstName}</p>}
           </div>
         </div>
 
@@ -132,6 +210,7 @@ const RegistrationFormClient = () => {
               className="pl-10 bg-blue-50 border-blue-100 focus:border-[#00bcd4] focus:ring-[#00bcd4] transition-all"
               required
             />
+            {errors.lastName && <p className="text-red-500 text-xs mt-1">{errors.lastName}</p>}
           </div>
         </div>
 
@@ -150,6 +229,7 @@ const RegistrationFormClient = () => {
               className="pl-10 bg-blue-50 border-blue-100 focus:border-[#00bcd4] focus:ring-[#00bcd4] transition-all"
               required
             />
+            {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
           </div>
         </div>
 
@@ -183,6 +263,7 @@ const RegistrationFormClient = () => {
                 )}
               </Button>
             </div>
+            {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
           </div>
         </div>
 
@@ -216,6 +297,7 @@ const RegistrationFormClient = () => {
                 )}
               </Button>
             </div>
+            {errors.confirmPassword && <p className="text-red-500 text-xs mt-1">{errors.confirmPassword}</p>}
           </div>
         </div>
 
@@ -258,15 +340,6 @@ const RegistrationFormClient = () => {
               </SelectContent>
             </Select>
           </div>
-        </div>
-
-        <div className="flex items-center space-x-2 text-sm">
-          <Checkbox
-            id="location"
-            // onCheckedChange={(checked) => /* manejar estado de ubicación */ }
-            // checked={/* estado de ubicación */}
-          />
-          <label htmlFor="location" className="text-gray-600">¿Dar mi ubicación exacta?</label>
         </div>
 
         <Button

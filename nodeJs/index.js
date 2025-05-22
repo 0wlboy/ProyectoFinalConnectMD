@@ -21,10 +21,11 @@ const PORT = process.env.PORT || 3001;
 //const whiteList = ["http://localhost:3000","http://localhost:3001", "http://localhost:5173"];
 
 //cors config
-const allowedOrigins = ['http://localhost:5173']; // Reemplaza con el puerto/dominio de tu frontend
+const allowedOrigins = ['http://localhost:5173','http://localhost:3001','http://localhost:3000']; // Reemplaza con el puerto/dominio de tu frontend
  const corsOptions = {
    origin: function (origin, callback) {
      // Permite solicitudes sin 'origin' (como Postman o curl) o si el origen está en la lista blanca
+     console.log(origin);
      if (!origin || allowedOrigins.indexOf(origin) !== -1) {
        callback(null, true);
      } else {

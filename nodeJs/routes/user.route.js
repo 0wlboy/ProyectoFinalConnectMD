@@ -23,7 +23,7 @@ const userRouter = express.Router();
  * @description Register a new user.
  * @access Public
  * @returns {Object} The register user.
- * @example POST http://localhost:3001/users/register
+ * @example POST http://localhost:5173/users/register
  */
 userRouter.post(
   "/users/register",
